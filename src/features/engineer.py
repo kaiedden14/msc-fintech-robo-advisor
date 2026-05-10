@@ -117,9 +117,17 @@ def build_features(clean_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Compute forward 1-month return as the target variable
+    daily_returns = close.pct_change(fill_method=None)
     forward_returns = close.pct_change(21).shift(-21)
-    target = forward_returns.stack(future_stack=True)
-    target.index.names = ["date", "ticker"]
-    feature_df["forward_return"] = target
+    forward_volatility = daily_returns.rolling(
+        21).std().shift(-21) * (252 ** 0.5)
+
+    target_return = forward_returns.stack(future_stack=True)
+    target_return.index.names = ["date", "ticker"]
+    feature_df["forward_return"] = target_return
+
+    target_vol = forward_volatility.stack(future_stack=True)
+    target_vol.index.names = ["date", "ticker"]
+    feature_df["forward_volatility"] = target_vol
 
     return feature_df
