@@ -75,6 +75,21 @@ def compute_vix(vix_series: pd.Series) -> pd.Series:
     return vix_series
 
 
+def compute_relative_strength(close: pd.DataFrame,
+                              benchmark: pd.Series) -> pd.DataFrame:
+    """Compute 21-day stock return minus FTSE 100 benchmark return."""
+    stock_return = close.pct_change(21)
+    benchmark_return = benchmark.pct_change(21)
+    return stock_return.sub(benchmark_return, axis=0)
+
+
+def compute_52w_percentile(close: pd.DataFrame) -> pd.DataFrame:
+    """Compute price position within 52-week (252-day) high-low range."""
+    rolling_high = close.rolling(252).max()
+    rolling_low = close.rolling(252).min()
+    return (close - rolling_low) / (rolling_high - rolling_low)
+
+
 def build_features(clean_df: pd.DataFrame) -> pd.DataFrame:
     """
     Build all 9 features for every ticker and return a long-format DataFrame.
@@ -99,6 +114,9 @@ def build_features(clean_df: pd.DataFrame) -> pd.DataFrame:
         "rsi_14":          compute_rsi(close),
         "volume_ratio_20": compute_volume_ratio(volume),
         "beta_252":        compute_beta(close, benchmark),
+        "relative_strength":  compute_relative_strength(close, benchmark),
+        "percentile_52w":     compute_52w_percentile(close),
+
     }
 
     # Stack each wide DataFrame to long format and concatenate
