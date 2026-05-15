@@ -77,6 +77,43 @@ def download_prices(tickers: list[str], cache_path: Path) -> pd.DataFrame:
     return data
 
 
+def load_or_build_clean_prices(
+    raw_path: Path,
+    clean_path: Path,
+    min_history: int = 1260,
+) -> pd.DataFrame:
+    """
+    Return cleaned price data, building and caching it from raw on first call.
+
+    Mirrors the download_prices caching pattern. On cache miss, reads the raw
+    parquet, applies clean_prices(), and writes the result to clean_path.
+    The cached file contains the MultiIndex (Close, Volume) DataFrame with
+    failing tickers dropped and remaining NaNs forward/back-filled.
+
+    Parameters
+    ----------
+    raw_path : Path
+        Path to the raw prices parquet (output of download_prices()).
+    clean_path : Path
+        Destination cache for the cleaned DataFrame.
+    min_history : int
+        Forwarded to clean_prices().
+
+    Returns
+    -------
+    pd.DataFrame
+        Cleaned MultiIndex (Close, Volume) DataFrame.
+    """
+    if clean_path.exists():
+        return pd.read_parquet(clean_path)
+
+    raw = pd.read_parquet(raw_path)
+    clean_df, _ = clean_prices(raw, min_history=min_history)
+    clean_path.parent.mkdir(parents=True, exist_ok=True)
+    clean_df.to_parquet(clean_path)
+    return clean_df
+
+
 def clean_prices(df: pd.DataFrame, min_history: int = 1260) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Apply quality filters to the raw price DataFrame. Drops tickers
