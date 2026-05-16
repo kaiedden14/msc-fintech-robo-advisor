@@ -114,6 +114,82 @@ def load_or_build_clean_prices(
     return clean_df
 
 
+def refresh_prices(
+    raw_path: Path,
+    clean_path: Path,
+    min_history: int = 1260,
+) -> dict:
+    """
+    Incrementally update the cached prices from yfinance.
+
+    Reads the existing raw parquet, downloads only the trading days since
+    its max date, appends, writes back to raw_path, and rebuilds the clean
+    cache at clean_path. Raises if no raw cache exists or if yfinance fails.
+
+    Parameters
+    ----------
+    raw_path : Path
+        Path to the existing raw prices parquet (output of download_prices()).
+    clean_path : Path
+        Path to the cleaned prices parquet. Rebuilt from updated raw.
+    min_history : int
+        Forwarded to clean_prices() when rebuilding.
+
+    Returns
+    -------
+    dict with keys:
+        previous_max_date : datetime.date — newest row before refresh
+        new_max_date      : datetime.date — newest row after refresh
+        new_rows          : int           — number of trading days appended
+        no_new_data       : bool          — True if yfinance returned nothing new
+    """
+    if not raw_path.exists():
+        raise FileNotFoundError(
+            f"No cached prices at {raw_path}. "
+            "Run download_prices() to build the initial cache first."
+        )
+
+    existing = pd.read_parquet(raw_path)
+    previous_max_date = existing.index.max()
+    tickers = existing["Close"].columns.tolist()
+
+    start = (previous_max_date + pd.Timedelta(days=1)).date()
+    new_data = yf.download(
+        tickers=tickers,
+        start=start,
+        auto_adjust=True,
+        progress=False,
+    )
+
+    if new_data.empty:
+        return {
+            "previous_max_date": previous_max_date.date(),
+            "new_max_date":      previous_max_date.date(),
+            "new_rows":          0,
+            "no_new_data":       True,
+        }
+
+    new_data = new_data[["Close", "Volume"]]
+
+    combined = pd.concat([existing, new_data]).sort_index()
+    # De-dup in case yfinance returns an overlapping row
+    combined = combined[~combined.index.duplicated(keep="last")]
+
+    combined.to_parquet(raw_path)
+
+    # Rebuild clean cache from updated raw
+    clean_df, _ = clean_prices(combined, min_history=min_history)
+    clean_path.parent.mkdir(parents=True, exist_ok=True)
+    clean_df.to_parquet(clean_path)
+
+    return {
+        "previous_max_date": previous_max_date.date(),
+        "new_max_date":      combined.index.max().date(),
+        "new_rows":          int((combined.index > previous_max_date).sum()),
+        "no_new_data":       False,
+    }
+
+
 def clean_prices(df: pd.DataFrame, min_history: int = 1260) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Apply quality filters to the raw price DataFrame. Drops tickers
