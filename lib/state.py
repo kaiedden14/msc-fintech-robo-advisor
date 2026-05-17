@@ -34,6 +34,9 @@ class AppState(TypedDict, total=False):
     active_detail_ticker:   str | None
     # Decision
     decision:               Decision | None
+    # UI flags
+    consent_acknowledged:   bool
+    session_start_logged:   bool
     # Event logging plumbing
     session_id:             str
     participant_id:         str | None
@@ -54,6 +57,8 @@ DEFAULTS: dict[str, Any] = {
     "projection_results":     None,
     "active_detail_ticker":   None,
     "decision":               None,
+    "consent_acknowledged":   False,
+    "session_start_logged":   False,
     "participant_id":         None,
 }
 
