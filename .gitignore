@@ -1,0 +1,19 @@
+# Secrets
+github_token.md
+
+# Data cache and model artefacts (large binary files, not for version control)
+data/raw/
+data/processed/
+/models/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
