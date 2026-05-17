@@ -242,9 +242,33 @@ def clean_prices(df: pd.DataFrame, min_history: int = 1260) -> tuple[pd.DataFram
         close = close.drop(columns=to_drop)
         volume = volume.drop(columns=to_drop)
 
-    # --- Forward-fill isolated NaNs (e.g. bank holidays) then back-fill any leading NaNs ---
-    close = close.ffill().bfill()
-    volume = volume.ffill().bfill()
+    # --- Forward-fill only (carries last known price over halts/holidays). ---
+    # Backward-fill is deliberately NOT applied: it would fill leading NaN with
+    # a future price, which is look-ahead bias. Late-listing tickers that pass
+    # the min_history filter (e.g. post-IPO listings) retain leading NaN here,
+    # which feature engineering then propagates through rolling windows so that
+    # contaminated rows are dropped naturally rather than silently bfilled.
+    close = close.ffill()
+    volume = volume.ffill()
+
+    # Log any tickers with residual NaN after ffill (always leading NaN, by
+    # construction). These are late listings; their leading rows will become
+    # NaN in features.parquet and get dropped during the training-set assembly.
+    residual_nan = close.isna().sum()
+    report["leading_nan_after_ffill"] = residual_nan
+    affected = residual_nan[residual_nan > 0]
+    if len(affected) > 0:
+        import warnings
+        affected_summary = ", ".join(
+            f"{t}({n})" for t, n in affected.sort_values(ascending=False).items()
+        )
+        warnings.warn(
+            f"clean_prices: {len(affected)} ticker(s) have leading NaN after ffill "
+            f"(post-listing tickers): {affected_summary}. These cells are NOT bfilled "
+            f"to avoid look-ahead bias; downstream feature engineering will propagate "
+            f"NaN through rolling windows and drop the affected rows.",
+            stacklevel=2,
+        )
 
     # --- Reassemble MultiIndex DataFrame ---
     clean_df = pd.concat({"Close": close, "Volume": volume}, axis=1)
