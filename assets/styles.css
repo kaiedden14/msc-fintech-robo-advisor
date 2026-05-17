@@ -1,0 +1,89 @@
+/* Hybrid Robo-Advisor — Phase 1 styles.
+   Covers what .streamlit/config.toml cannot: card radii, secondary text,
+   divider tone, sidebar brand/footer treatment, section labels. Polish
+   (transitions, animations, pixel-perfect spacing) is deferred to Phase 8.
+*/
+
+:root {
+    --ra-navy:           #0F2540;
+    --ra-page:           #F7F6F2;
+    --ra-card:           #FFFFFF;
+    --ra-teal:           #0E8E8E;
+    --ra-amber:          #C97A1F;
+    --ra-divider:        #E4E2DC;
+    --ra-text:           #1A1A1A;
+    --ra-text-secondary: #5A5A5A;
+    --ra-radius-card:    12px;
+    --ra-radius-input:   6px;
+}
+
+/* Page surface */
+.stApp {
+    background-color: var(--ra-page);
+}
+
+/* Sidebar background tweak (clearer separation from page surface) */
+[data-testid="stSidebar"] {
+    background-color: var(--ra-card);
+    border-right: 1px solid var(--ra-divider);
+}
+
+/* Brand */
+.ra-brand {
+    font-weight: 700;
+    font-size: 1.35rem;
+    line-height: 1.15;
+    color: var(--ra-navy);
+    margin: 0.25rem 0 1rem 0;
+    letter-spacing: -0.01em;
+}
+
+/* Small uppercase section labels in the sidebar */
+.ra-section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ra-text-secondary);
+    margin: 1rem 0 0.4rem 0;
+    font-weight: 600;
+}
+
+/* Sidebar buttons — equal weight nav rows */
+[data-testid="stSidebar"] .stButton button {
+    text-align: left;
+    justify-content: flex-start;
+    border-radius: var(--ra-radius-input);
+    font-weight: 500;
+}
+
+/* Sidebar containers (session card etc.) take the locked card radius */
+[data-testid="stSidebar"] div[data-testid="stContainer"] {
+    border-radius: var(--ra-radius-card) !important;
+    border: 1px solid var(--ra-divider) !important;
+}
+
+/* Sidebar footer */
+.ra-footer-sidebar {
+    margin-top: 2rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--ra-divider);
+    font-size: 0.7rem;
+    color: var(--ra-text-secondary);
+    text-align: center;
+}
+
+/* Per-page footer — placed at the bottom of main content */
+.ra-footer-page {
+    margin-top: 3rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--ra-divider);
+    font-size: 0.75rem;
+    color: var(--ra-text-secondary);
+    text-align: center;
+}
+
+/* Input radius */
+input, textarea, select,
+.stTextInput input, .stNumberInput input {
+    border-radius: var(--ra-radius-input) !important;
+}

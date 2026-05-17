@@ -1,0 +1,18 @@
+# Dashboard runtime
+streamlit>=1.31
+plotly>=5.18
+
+# Data + numeric
+pandas>=2.0
+numpy>=1.24
+pyarrow>=14.0
+
+# Modelling / explainability (used by upstream pipeline + loaded by dashboard via joblib)
+scikit-learn>=1.3
+scipy>=1.11
+shap>=0.43
+joblib>=1.3
+
+# Upstream data ingest (used by refresh_prices and snapshot regen, not by the running app)
+yfinance>=0.2
+requests>=2.31
