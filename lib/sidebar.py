@@ -61,11 +61,20 @@ def _render_session_card() -> None:
     amt = st.session_state.get("investment_amount")
     amt_str = f"£{amt:,.0f}" if amt else "—"
     n_sel = len(st.session_state.get("selected_tickers") or [])
+
+    # Colour the selection count amber when outside the 5-15 range
+    if n_sel == 0:
+        sel_str = "—"
+    elif 5 <= n_sel <= 15:
+        sel_str = f"{n_sel}"
+    else:
+        sel_str = f"<span style='color:#C97A1F'>{n_sel}</span>"
+
     with st.container(border=True):
         st.markdown(
             f"**Risk profile** &nbsp;&nbsp;&nbsp;&nbsp; {rp}<br/>"
             f"**Investment** &nbsp;&nbsp;&nbsp;&nbsp; {amt_str}<br/>"
-            f"**Selected** &nbsp;&nbsp;&nbsp;&nbsp; {n_sel}",
+            f"**Selected** &nbsp;&nbsp;&nbsp;&nbsp; {sel_str}",
             unsafe_allow_html=True,
         )
 

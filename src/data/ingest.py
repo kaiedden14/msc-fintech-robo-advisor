@@ -33,6 +33,61 @@ def build_universe() -> list[str]:
     return tickers
 
 
+def build_universe_metadata(cache_path: Path) -> pd.DataFrame:
+    """
+    Scrape FTSE 100 company name + sector from Wikipedia and cache to disk.
+
+    Mirrors the table-index choice in build_universe(). Returns a DataFrame
+    indexed by ticker (in yfinance format, e.g. 'HSBA.L'), with columns
+    'name' and 'sector'. The dashboard uses this for the asset-selection
+    table's Company and Sector columns. Run once; the dashboard never
+    re-scrapes at runtime.
+
+    Parameters
+    ----------
+    cache_path : Path
+        Destination parquet (e.g. data/processed/universe_metadata.parquet).
+
+    Returns
+    -------
+    pd.DataFrame
+        Indexed by ticker, with columns ['name', 'sector'].
+    """
+    url = "https://en.wikipedia.org/wiki/FTSE_100_Index"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, headers=headers)
+    tables = pd.read_html(StringIO(response.text))
+    ftse_table = tables[6]  # same index used by build_universe()
+
+    # Identify columns defensively — Wikipedia column names drift over time
+    rename = {}
+    for col in ftse_table.columns:
+        c = str(col).lower()
+        if "ticker" in c and "ticker" not in rename.values():
+            rename[col] = "ticker"
+        elif "company" in c:
+            rename[col] = "name"
+        elif "industry" in c or "sector" in c or "fics" in c:
+            rename[col] = "sector"
+
+    required = {"ticker", "name", "sector"}
+    missing = required - set(rename.values())
+    if missing:
+        raise ValueError(
+            f"Wikipedia FTSE 100 table missing expected columns {missing}. "
+            f"Saw columns: {list(ftse_table.columns)}"
+        )
+
+    meta = ftse_table.rename(columns=rename)[["ticker", "name", "sector"]].copy()
+    meta["ticker"] = meta["ticker"].astype(str) + ".L"
+    meta["ticker"] = meta["ticker"].replace("BT.A.L", "BT-A.L")
+    meta = meta.drop_duplicates(subset="ticker").set_index("ticker")
+
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    meta.to_parquet(cache_path)
+    return meta
+
+
 def download_prices(tickers: list[str], cache_path: Path) -> pd.DataFrame:
     """
     Download daily adjusted close prices and volume for all tickers
