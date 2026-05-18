@@ -5,6 +5,8 @@ Phase 1 implementation: functional with locked colour tokens. Polish
 Phase 8.
 """
 
+from pathlib import Path
+
 import streamlit as st
 
 
@@ -49,6 +51,9 @@ def render_sidebar(current_page) -> None:
         st.markdown("<div class='ra-section-label'>Session</div>", unsafe_allow_html=True)
         _render_session_card()
 
+        st.markdown("<div class='ra-section-label'>Data</div>", unsafe_allow_html=True)
+        _render_data_section()
+
         # Footer disclaimer (sidebar copy; per-page disclaimer rendered separately)
         st.markdown(
             "<div class='ra-footer-sidebar'>Academic prototype — not financial advice</div>",
@@ -85,3 +90,104 @@ def render_page_footer() -> None:
         "<div class='ra-footer-page'>Academic prototype — not financial advice</div>",
         unsafe_allow_html=True,
     )
+
+
+def _render_data_section() -> None:
+    """Render the Data card (Prices + Recommendation dates + Refresh button)."""
+    from lib.data import load_prices_clean, load_snapshot_metadata
+
+    try:
+        prices_date = load_prices_clean().index.max().date().isoformat()
+    except Exception:
+        prices_date = "—"
+    try:
+        rec_date = load_snapshot_metadata().get("snapshot_date", "—")
+    except Exception:
+        rec_date = "—"
+
+    with st.container(border=True):
+        st.markdown(
+            f"**Prices** &nbsp;&nbsp;&nbsp;&nbsp; {prices_date}<br/>"
+            f"**Recommendation** &nbsp;&nbsp;&nbsp;&nbsp; {rec_date}",
+            unsafe_allow_html=True,
+        )
+
+    if st.button("Refresh data", use_container_width=True, key="refresh_data_btn"):
+        _handle_refresh_data()
+
+
+def _handle_refresh_data() -> None:
+    """Run the daily pipeline (prices -> features -> snapshot) on click.
+
+    Wrapped in try/except so a yfinance failure leaves the dashboard with
+    its cached state intact rather than crashing. st.rerun is called only
+    after the success path completes so the failure branch's error toast
+    survives.
+    """
+    from src.data.ingest import refresh_prices, refresh_features
+    from src.models.snapshot import build_snapshot
+    from lib.data import (
+        load_prices_clean, load_snapshot_metadata, invalidate_caches,
+    )
+    from lib.logger import log_event
+
+    # Capture before-state for the log payload
+    try:
+        prices_before = load_prices_clean().index.max().date().isoformat()
+    except Exception:
+        prices_before = None
+    try:
+        snap_before = load_snapshot_metadata().get("snapshot_date")
+    except Exception:
+        snap_before = None
+
+    raw_path = Path("data/raw/prices.parquet")
+    clean_path = Path("data/processed/prices_clean.parquet")
+    features_path = Path("data/processed/features.parquet")
+    return_model_path = Path("models/rf_return_v5.joblib")
+    vol_model_path = Path("models/rf_volatility_v5.joblib")
+    output_dir = Path("data/processed")
+
+    success = False
+    snap_meta_after: dict = {}
+    price_status: dict = {}
+    try:
+        with st.spinner("Fetching latest prices from yfinance…"):
+            price_status = refresh_prices(raw_path, clean_path)
+        with st.spinner("Rebuilding feature panel…"):
+            refresh_features(clean_path, features_path)
+        with st.spinner("Generating recommendations…"):
+            snap_meta_after = build_snapshot(
+                return_model_path=return_model_path,
+                vol_model_path=vol_model_path,
+                features_path=features_path,
+                output_dir=output_dir,
+            )
+        invalidate_caches()
+        log_event(
+            "data_refreshed",
+            prices_before=prices_before,
+            prices_after=str(price_status.get("new_max_date", "")),
+            snapshot_before=snap_before,
+            snapshot_after=snap_meta_after.get("snapshot_date"),
+            new_rows=int(price_status.get("new_rows", 0)),
+        )
+        success = True
+    except Exception as e:
+        log_event("data_refresh_failed", error=str(e))
+        st.error(f"Refresh failed: {e}")
+
+    if success:
+        if price_status.get("no_new_data"):
+            st.toast(
+                f"No new prices since {prices_before}. Recommendation rebuilt "
+                f"for {snap_meta_after.get('snapshot_date')}.",
+                icon="✓",
+            )
+        else:
+            st.toast(
+                f"Refreshed: {price_status.get('new_rows', 0)} new trading day(s). "
+                f"Recommendation as of {snap_meta_after.get('snapshot_date')}.",
+                icon="✓",
+            )
+        st.rerun()

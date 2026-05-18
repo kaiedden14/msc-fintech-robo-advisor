@@ -64,3 +64,18 @@ def load_prices_clean() -> pd.DataFrame:
 def load_snapshot_metadata() -> dict:
     """Snapshot metadata JSON (snapshot_date, build time, n_tickers, model paths)."""
     return json.loads((_DATA_DIR / "snapshot_metadata.json").read_text())
+
+
+def invalidate_caches() -> None:
+    """Clear all data-loader caches.
+
+    Called by the "Refresh data" handler after the daily pipeline runs so the
+    next read of any loader pulls fresh data from disk. Universe metadata is
+    not invalidated because it changes only when build_universe_metadata is
+    re-run (not part of the daily refresh).
+    """
+    load_predictions.clear()
+    load_shap_return.clear()
+    load_shap_volatility.clear()
+    load_prices_clean.clear()
+    load_snapshot_metadata.clear()

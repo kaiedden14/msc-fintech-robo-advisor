@@ -14,7 +14,6 @@ from lib.data import (
     load_predictions,
     load_prices_clean,
     load_shap_return,
-    load_snapshot_metadata,
     load_universe_metadata,
 )
 from lib.logger import log_event
@@ -39,10 +38,10 @@ if not st.session_state["risk_profile"]:
 # ---------- Header + intro ----------
 
 st.title("Asset Selection")
-meta = load_snapshot_metadata()
 st.caption(
     f"Pick {_MIN_SEL}-{_MAX_SEL} stocks from the FTSE 100. "
-    f"Recommendations are based on a snapshot taken on {meta['snapshot_date']}."
+    "Predictions and explanations refresh whenever you press "
+    "**Refresh data** in the sidebar."
 )
 
 

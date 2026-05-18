@@ -245,6 +245,49 @@ def refresh_prices(
     }
 
 
+def refresh_features(
+    clean_prices_path: Path,
+    features_path: Path,
+) -> dict:
+    """
+    Rebuild the feature panel from the latest clean prices and overwrite.
+
+    Loads cleaned prices, runs build_features() (7 model features + 2 forward
+    targets), drops NaN rows, and writes the result to features_path. Called
+    by the dashboard's "Refresh data" handler after refresh_prices().
+
+    Parameters
+    ----------
+    clean_prices_path : Path
+        Path to the cleaned prices parquet (built by load_or_build_clean_prices
+        or refresh_prices).
+    features_path : Path
+        Destination parquet for the feature panel (overwrites existing).
+
+    Returns
+    -------
+    dict with keys:
+        max_date  : datetime.date — newest feature row after rebuild
+        n_rows    : int           — total feature rows after dropna
+        n_tickers : int           — unique tickers in the rebuilt panel
+    """
+    # Local import to avoid pulling sklearn / scipy into ingest's import graph
+    from src.features.engineer import build_features
+
+    clean_df = pd.read_parquet(clean_prices_path)
+    feature_df = build_features(clean_df)
+    feature_clean = feature_df.dropna()
+
+    features_path.parent.mkdir(parents=True, exist_ok=True)
+    feature_clean.to_parquet(features_path)
+
+    return {
+        "max_date": feature_clean.index.get_level_values("date").max().date(),
+        "n_rows": int(len(feature_clean)),
+        "n_tickers": int(feature_clean.index.get_level_values("ticker").nunique()),
+    }
+
+
 def clean_prices(df: pd.DataFrame, min_history: int = 1260) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Apply quality filters to the raw price DataFrame. Drops tickers
