@@ -29,6 +29,8 @@ class AppState(TypedDict, total=False):
     optimised_weights:      dict[str, float] | None
     user_modified_weights:  dict[str, float] | None
     decomposition:          Any  # pd.DataFrame or None
+    expected_return:        float | None
+    expected_vol:           float | None
     projection_results:     dict | None
     # Screen 5 focus
     active_detail_ticker:   str | None
@@ -54,6 +56,8 @@ DEFAULTS: dict[str, Any] = {
     "optimised_weights":      None,
     "user_modified_weights":  None,
     "decomposition":          None,
+    "expected_return":        None,
+    "expected_vol":           None,
     "projection_results":     None,
     "active_detail_ticker":   None,
     "decision":               None,
@@ -71,12 +75,13 @@ DOWNSTREAM_OF: dict[str, list[str]] = {
         "correlation_flags", "predictions",
         "shap_values_return", "shap_values_volatility",
         "optimised_weights", "user_modified_weights",
-        "decomposition", "projection_results",
-        "active_detail_ticker",
+        "decomposition", "expected_return", "expected_vol",
+        "projection_results", "active_detail_ticker",
     ],
     "risk_profile": [
         "optimised_weights", "user_modified_weights",
-        "decomposition", "projection_results",
+        "decomposition", "expected_return", "expected_vol",
+        "projection_results",
     ],
 }
 
@@ -117,3 +122,37 @@ def clear_downstream_of(key: str) -> None:
             st.session_state[downstream_key] = []
         elif isinstance(DEFAULTS[downstream_key], dict):
             st.session_state[downstream_key] = {}
+
+
+# Keys preserved across a "Reject and Restart" — the participant identity
+# and consent acknowledgement stay so the participant doesn't have to
+# re-consent. Everything portfolio-related is wiped.
+_RESTART_PRESERVE: set[str] = {
+    "session_id", "session_started_at", "session_start_logged",
+    "participant_id", "consent_acknowledged",
+}
+
+
+def reset_for_restart() -> None:
+    """Clear portfolio-related state and any dynamic slider widget keys.
+
+    Called when the participant clicks "Reject and Restart" on Screen 5.
+    Returns the user to Landing with a fresh portfolio slate, while
+    keeping the session and participant identity intact.
+    """
+    for key in list(DEFAULTS.keys()):
+        if key in _RESTART_PRESERVE:
+            continue
+        default = DEFAULTS[key]
+        if isinstance(default, list):
+            st.session_state[key] = []
+        elif isinstance(default, dict):
+            st.session_state[key] = {}
+        else:
+            st.session_state[key] = default
+
+    # Dynamic slider widget keys (weight_slider_<ticker>) are not in DEFAULTS;
+    # remove them so any residual values don't bleed into a fresh allocation.
+    for k in list(st.session_state.keys()):
+        if k.startswith("weight_slider_"):
+            del st.session_state[k]

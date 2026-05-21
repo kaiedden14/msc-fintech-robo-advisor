@@ -181,13 +181,11 @@ def _handle_refresh_data() -> None:
         if price_status.get("no_new_data"):
             st.toast(
                 f"No new prices since {prices_before}. Recommendation rebuilt "
-                f"for {snap_meta_after.get('snapshot_date')}.",
-                icon="✓",
+                f"for {snap_meta_after.get('snapshot_date')}."
             )
         else:
             st.toast(
                 f"Refreshed: {price_status.get('new_rows', 0)} new trading day(s). "
-                f"Recommendation as of {snap_meta_after.get('snapshot_date')}.",
-                icon="✓",
+                f"Recommendation as of {snap_meta_after.get('snapshot_date')}."
             )
         st.rerun()
