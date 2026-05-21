@@ -31,6 +31,8 @@ class AppState(TypedDict, total=False):
     decomposition:          Any  # pd.DataFrame or None
     expected_return:        float | None
     expected_vol:           float | None
+    cov_matrix:             Any  # np.ndarray or None
+    cov_matrix_tickers:     list[str] | None
     projection_results:     dict | None
     # Screen 5 focus
     active_detail_ticker:   str | None
@@ -58,6 +60,8 @@ DEFAULTS: dict[str, Any] = {
     "decomposition":          None,
     "expected_return":        None,
     "expected_vol":           None,
+    "cov_matrix":             None,
+    "cov_matrix_tickers":     None,
     "projection_results":     None,
     "active_detail_ticker":   None,
     "decision":               None,
@@ -76,11 +80,13 @@ DOWNSTREAM_OF: dict[str, list[str]] = {
         "shap_values_return", "shap_values_volatility",
         "optimised_weights", "user_modified_weights",
         "decomposition", "expected_return", "expected_vol",
+        "cov_matrix", "cov_matrix_tickers",
         "projection_results", "active_detail_ticker",
     ],
     "risk_profile": [
         "optimised_weights", "user_modified_weights",
         "decomposition", "expected_return", "expected_vol",
+        "cov_matrix", "cov_matrix_tickers",
         "projection_results",
     ],
 }

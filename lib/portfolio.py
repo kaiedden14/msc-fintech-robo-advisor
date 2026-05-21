@@ -188,6 +188,11 @@ def compute_recommendation() -> dict[str, Any] | None:
     st.session_state["decomposition"] = decomp
     st.session_state["expected_return"] = float(result["expected_return"])
     st.session_state["expected_vol"] = float(result["expected_vol"])
+    # Persist the optimiser's covariance matrix and ticker ordering so
+    # Phase 6 (forward projection) can compute portfolio variance for
+    # user-modified weights without recomputing Ledoit-Wolf shrinkage.
+    st.session_state["cov_matrix"] = result["cov_matrix"]
+    st.session_state["cov_matrix_tickers"] = list(result["weights"].index)
 
     log_event(
         "recommendation_generated",
