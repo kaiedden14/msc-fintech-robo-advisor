@@ -144,55 +144,85 @@ st.caption(
 
 fig = go.Figure()
 
-# Portfolio p95 (invisible top of outer band)
-fig.add_trace(go.Scatter(
-    x=months, y=p95, mode="lines",
-    line=dict(width=0), showlegend=False, hoverinfo="skip",
-))
-# Portfolio p5 with fill up to p95 (outer band)
+# Subtle horizontal reference at the starting capital — anchors the eye
+# so the user can read "above the line = gain, below = loss".
+fig.add_hline(
+    y=amount,
+    line=dict(color="#5A5A5A", width=1, dash="dot"),
+    opacity=0.5,
+)
+
+# Portfolio downside (5th percentile) — amber, the "what could go wrong" line
 fig.add_trace(go.Scatter(
     x=months, y=p5, mode="lines",
-    line=dict(width=0),
-    fill="tonexty", fillcolor="rgba(15, 37, 64, 0.12)",
-    name="5th–95th percentile",
-    hovertemplate="Month %{x}<br>Range £%{y:,.0f}<extra></extra>",
+    line=dict(color="#C97A1F", width=2, dash="dot"),
+    name="Portfolio downside (5th %ile)",
+    hovertemplate="Month %{x}<br>Downside: £%{y:,.0f}<extra></extra>",
 ))
-# Portfolio p75 invisible
+# Portfolio upside (95th percentile) — teal, the "what could go right" line
 fig.add_trace(go.Scatter(
-    x=months, y=p75, mode="lines",
-    line=dict(width=0), showlegend=False, hoverinfo="skip",
+    x=months, y=p95, mode="lines",
+    line=dict(color="#0E8E8E", width=2, dash="dot"),
+    name="Portfolio upside (95th %ile)",
+    hovertemplate="Month %{x}<br>Upside: £%{y:,.0f}<extra></extra>",
 ))
-# Portfolio p25 with fill up to p75 (inner band)
+# Portfolio median — navy, prominent, with start + end markers for visual anchor
 fig.add_trace(go.Scatter(
-    x=months, y=p25, mode="lines",
-    line=dict(width=0),
-    fill="tonexty", fillcolor="rgba(15, 37, 64, 0.25)",
-    name="25th–75th percentile",
-    hovertemplate="Month %{x}<br>Range £%{y:,.0f}<extra></extra>",
-))
-# Portfolio median (navy line)
-fig.add_trace(go.Scatter(
-    x=months, y=p50, mode="lines",
-    line=dict(color="#0F2540", width=2.5),
+    x=months, y=p50, mode="lines+markers",
+    line=dict(color="#0F2540", width=3.2),
+    marker=dict(
+        size=[8] + [0] * (len(months) - 2) + [10],  # start dot + end dot only
+        color="#0F2540",
+        line=dict(color="#FFFFFF", width=1),
+    ),
     name="Portfolio median",
-    hovertemplate="Month %{x}<br>Median £%{y:,.0f}<extra></extra>",
+    hovertemplate="Month %{x}<br>Median: £%{y:,.0f}<extra></extra>",
 ))
-# FTSE 100 median (grey dashed line)
+# FTSE 100 median — grey, comparison benchmark
 fig.add_trace(go.Scatter(
     x=months, y=f50, mode="lines",
     line=dict(color="#5A5A5A", width=2, dash="dash"),
     name="FTSE 100 median",
-    hovertemplate="Month %{x}<br>FTSE £%{y:,.0f}<extra></extra>",
+    hovertemplate="Month %{x}<br>FTSE: £%{y:,.0f}<extra></extra>",
 ))
 
+# End-of-line value annotations at month 12 — the interpretive moments.
+# Each line's terminal value labelled in its line's colour. The starting
+# capital reference label sits alongside (in grey, slightly smaller) where
+# the lines have spread out by month 12.
+for value, colour in [
+    (p95[-1],  "#0E8E8E"),
+    (p50[-1],  "#0F2540"),
+    (f50[-1],  "#5A5A5A"),
+    (p5[-1],   "#C97A1F"),
+]:
+    fig.add_annotation(
+        x=12, y=value,
+        text=f"<b>£{value:,.0f}</b>",
+        showarrow=False, xanchor="left", yanchor="middle",
+        xshift=8,
+        font=dict(size=11, color=colour, family="Inter, sans-serif"),
+    )
+
+# Starting capital label at the right edge, on the dotted reference line.
+fig.add_annotation(
+    x=12, y=amount,
+    text=f"Start · £{amount:,.0f}",
+    showarrow=False, xanchor="left", yanchor="middle",
+    xshift=8,
+    font=dict(size=10, color="#5A5A5A"),
+)
+
+# Extend x-axis a touch so the end-of-line labels don't clip
 fig.update_layout(
-    height=460,
-    margin=dict(l=20, r=20, t=30, b=40),
+    height=480,
+    margin=dict(l=20, r=120, t=30, b=40),
     plot_bgcolor="#FFFFFF",
     paper_bgcolor="#FFFFFF",
     xaxis=dict(
         title="Months ahead",
         tickmode="linear", tick0=0, dtick=1,
+        range=[-0.2, 12.8],
         color="#5A5A5A",
         showgrid=False,
     ),

@@ -1,8 +1,11 @@
 """Asset Selection — Phase 3.
 
-Universe display with search, sector filter, selection table, and a
-per-stock detail panel showing price chart + plain-language SHAP card.
-Enforces 5-15 selection constraint via Continue-button gating.
+Click-to-view interactive table. Click any row to load that stock's
+chart, predictions, and SHAP explanation into the detail panel below.
+Selection (add to / remove from your portfolio) happens via a button
+in the detail panel — keeps the table itself clean (no checkbox column,
+no separate dropdown). Enforces 5–15 selection constraint via the
+Continue-button gating.
 """
 
 import pandas as pd
@@ -24,7 +27,7 @@ from lib.state import clear_downstream_of
 _MIN_SEL, _MAX_SEL = 5, 15
 
 
-# ---------- Guard: prior pages must be complete ----------
+# ---------- Guard ----------
 
 if not st.session_state["risk_profile"]:
     st.title("Asset Selection")
@@ -35,13 +38,13 @@ if not st.session_state["risk_profile"]:
     st.stop()
 
 
-# ---------- Header + intro ----------
+# ---------- Header ----------
 
 st.title("Asset Selection")
 st.caption(
     f"Pick {_MIN_SEL}-{_MAX_SEL} stocks from the FTSE 100. "
-    "Predictions and explanations refresh whenever you press "
-    "**Refresh data** in the sidebar."
+    "Click a row to see a stock's chart, predictions, and the reasons "
+    "behind them — then add it to your selection from the detail panel."
 )
 
 
@@ -52,12 +55,9 @@ predictions = load_predictions()
 prices_close = load_prices_clean()["Close"]
 shap_return_df = load_shap_return()
 
-# The selectable universe is whatever the snapshot covers — 93 stock tickers
 universe_tickers: list[str] = sorted(predictions.index.tolist())
 
-# Latest close + 1-day change (handle ^FTSE / ^VIX presence gracefully)
 latest_date = prices_close.index.max()
-# Find the previous trading day before latest_date for each ticker
 prev_date = prices_close.index[-2]
 last_close_all = prices_close.loc[latest_date]
 prev_close_all = prices_close.loc[prev_date]
@@ -73,27 +73,27 @@ selected_set = set(st.session_state["selected_tickers"])
 
 table = pd.DataFrame(
     {
-        "Selected":         [t in selected_set for t in universe_tickers],
-        "Ticker":           universe_tickers,
-        "Company":          [
+        "✓":         ["✓" if t in selected_set else "" for t in universe_tickers],
+        "Ticker":    universe_tickers,
+        "Company":   [
             universe.loc[t, "name"] if t in universe.index else t
             for t in universe_tickers
         ],
-        "Sector":           [
+        "Sector":    [
             universe.loc[t, "sector"] if t in universe.index else "—"
             for t in universe_tickers
         ],
-        "Last close (GBp)": last_close.values,
-        "1-day change %":   daily_change_pct.values,
-        "Pred. return %":   predictions.loc[universe_tickers, "predicted_return"].values * 100,
-        "Pred. vol %":      predictions.loc[universe_tickers, "predicted_vol"].values * 100,
+        "Last close":  last_close.values,
+        "1d %":        daily_change_pct.values,
+        "Return %":    predictions.loc[universe_tickers, "predicted_return"].values * 100,
+        "Vol %":       predictions.loc[universe_tickers, "predicted_vol"].values * 100,
     }
 )
 
 
-# ---------- Filters ----------
+# ---------- Filters + counter row ----------
 
-filt_col_a, filt_col_b = st.columns([2, 3], gap="medium")
+filt_col_a, filt_col_b, counter_col = st.columns([2, 3, 2], gap="medium")
 with filt_col_a:
     search = st.text_input(
         "Search ticker or company",
@@ -109,6 +109,27 @@ with filt_col_b:
         options=sectors_available,
         key="asset_sector_filter",
     )
+with counter_col:
+    st.markdown("&nbsp;")  # vertical alignment with the inputs
+    n = len(st.session_state["selected_tickers"])
+    if n == 0:
+        st.markdown(f"**0** of {_MIN_SEL}-{_MAX_SEL} selected")
+    elif _MIN_SEL <= n <= _MAX_SEL:
+        st.markdown(f"**{n}** of {_MIN_SEL}-{_MAX_SEL} selected")
+    elif n < _MIN_SEL:
+        st.markdown(
+            f"<span style='color:#C97A1F'>"
+            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL} — pick {_MIN_SEL - n} more"
+            f"</span>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"<span style='color:#C97A1F'>"
+            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL} — remove {n - _MAX_SEL}"
+            f"</span>",
+            unsafe_allow_html=True,
+        )
 
 filtered = table.copy()
 if search:
@@ -122,131 +143,133 @@ if sector_filter:
     filtered = filtered[filtered["Sector"].isin(sector_filter)]
 
 
-# ---------- Selection table ----------
+# ---------- Row-click table ----------
 
-edited = st.data_editor(
+event = st.dataframe(
     filtered,
     column_config={
-        "Selected": st.column_config.CheckboxColumn(default=False, width="small"),
-        "Ticker": st.column_config.TextColumn(width="small"),
-        "Company": st.column_config.TextColumn(width="medium"),
-        "Sector": st.column_config.TextColumn(width="medium"),
-        "Last close (GBp)": st.column_config.NumberColumn(format="%.2f", width="small"),
-        "1-day change %":   st.column_config.NumberColumn(format="%+.2f", width="small"),
-        "Pred. return %":   st.column_config.NumberColumn(format="%+.2f", width="small"),
-        "Pred. vol %":      st.column_config.NumberColumn(format="%.2f", width="small"),
+        "✓":          st.column_config.TextColumn(width="small"),
+        "Ticker":     st.column_config.TextColumn(width="small"),
+        "Company":    st.column_config.TextColumn(width="medium"),
+        "Sector":     st.column_config.TextColumn(width="medium"),
+        "Last close": st.column_config.NumberColumn(format="%.2f", width="small"),
+        "1d %":       st.column_config.NumberColumn(format="%+.2f", width="small"),
+        "Return %":   st.column_config.NumberColumn(format="%+.2f", width="small"),
+        "Vol %":      st.column_config.NumberColumn(format="%.2f", width="small"),
     },
     hide_index=True,
     use_container_width=True,
-    disabled=["Ticker", "Company", "Sector", "Last close (GBp)",
-              "1-day change %", "Pred. return %", "Pred. vol %"],
-    key="asset_table_editor",
     height=420,
+    on_select="rerun",
+    selection_mode="single-row",
+    key="asset_table",
 )
 
-# Diff against state — only among VISIBLE tickers — and update
-visible_tickers = set(filtered["Ticker"])
-old_visible_sel = selected_set & visible_tickers
-new_visible_sel = set(edited.loc[edited["Selected"], "Ticker"])
-
-added = new_visible_sel - old_visible_sel
-removed = old_visible_sel - new_visible_sel
-
-if added or removed:
-    new_full = sorted((selected_set - removed) | added)
-    for t in added:
-        log_event("ticker_selected", ticker=t, current_selection_count=len(new_full))
-    for t in removed:
-        log_event("ticker_deselected", ticker=t, current_selection_count=len(new_full))
-    st.session_state["selected_tickers"] = new_full
-    clear_downstream_of("selected_tickers")
-    st.rerun()
+# Row click → set active_detail_ticker
+if event.selection.rows:
+    picked = filtered.iloc[event.selection.rows[0]]["Ticker"]
+    if picked != st.session_state["active_detail_ticker"]:
+        st.session_state["active_detail_ticker"] = picked
+        log_event(
+            "stock_clicked_for_shap",
+            ticker=picked,
+            source="asset_selection_table",
+        )
+        st.rerun()
 
 
-# ---------- Selection counter + info ----------
+# ---------- Detail panel (row-clicked stock) ----------
 
-n = len(st.session_state["selected_tickers"])
-counter_col, info_col = st.columns([1, 2], gap="medium")
-with counter_col:
-    if n == 0:
-        st.markdown(f"**0** of {_MIN_SEL}-{_MAX_SEL} selected")
-    elif _MIN_SEL <= n <= _MAX_SEL:
-        st.markdown(f"**{n}** of {_MIN_SEL}-{_MAX_SEL} selected")
-    elif n < _MIN_SEL:
-        st.markdown(
-            f"<span style='color:#C97A1F'>"
-            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL} selected — pick at least {_MIN_SEL - n} more"
-            f"</span>",
-            unsafe_allow_html=True,
+def _toggle_selection(ticker: str, currently_selected: bool) -> None:
+    """Button on_click handler — add to or remove from selected_tickers."""
+    selected = set(st.session_state["selected_tickers"])
+    if currently_selected:
+        new_full = sorted(selected - {ticker})
+        log_event(
+            "ticker_deselected",
+            ticker=ticker,
+            current_selection_count=len(new_full),
         )
     else:
-        st.markdown(
-            f"<span style='color:#C97A1F'>"
-            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL} selected — remove at least {n - _MAX_SEL}"
-            f"</span>",
-            unsafe_allow_html=True,
+        new_full = sorted(selected | {ticker})
+        log_event(
+            "ticker_selected",
+            ticker=ticker,
+            current_selection_count=len(new_full),
         )
-with info_col:
-    with st.container(border=True):
-        st.caption(
-            "Tip: click on any stock below to see its price history and the "
-            "reasons behind its forecast."
-        )
-
-
-# ---------- Per-stock detail panel toggle + render ----------
-
-st.markdown("&nbsp;")
-detail_options = ["(none)"] + universe_tickers
-default_idx = (
-    detail_options.index(st.session_state["active_detail_ticker"])
-    if st.session_state["active_detail_ticker"] in detail_options
-    else 0
-)
-detail_choice = st.selectbox(
-    "View detail for…",
-    options=detail_options,
-    index=default_idx,
-    format_func=lambda t: (
-        "(select a stock)"
-        if t == "(none)"
-        else f"{t} — {universe.loc[t, 'name']}"
-        if t in universe.index
-        else t
-    ),
-    key="detail_picker",
-)
-new_detail = None if detail_choice == "(none)" else detail_choice
-if new_detail != st.session_state["active_detail_ticker"]:
-    st.session_state["active_detail_ticker"] = new_detail
-    if new_detail:
-        log_event("stock_clicked_for_shap", ticker=new_detail)
+    st.session_state["selected_tickers"] = new_full
+    clear_downstream_of("selected_tickers")
 
 
 def _render_detail_panel(ticker: str) -> None:
     company = universe.loc[ticker, "name"] if ticker in universe.index else ticker
     sector = universe.loc[ticker, "sector"] if ticker in universe.index else "—"
+    is_selected = ticker in set(st.session_state["selected_tickers"])
+    n_current = len(st.session_state["selected_tickers"])
 
     with st.container(border=True):
-        st.markdown(f"### {company} ({ticker})")
-        st.caption(f"Sector: {sector}")
+        # Header row: stock name on the left, Add/Remove button on the right
+        hdr_col, btn_col = st.columns([3, 1], gap="medium")
+        with hdr_col:
+            st.markdown(f"### {company}")
+            st.caption(f"{ticker} · {sector}")
+        with btn_col:
+            if is_selected:
+                st.button(
+                    "Remove from selection",
+                    key="detail_remove_btn",
+                    use_container_width=True,
+                    on_click=_toggle_selection,
+                    args=(ticker, True),
+                )
+            else:
+                at_max = n_current >= _MAX_SEL
+                st.button(
+                    "Add to selection",
+                    key="detail_add_btn",
+                    type="primary",
+                    use_container_width=True,
+                    disabled=at_max,
+                    on_click=_toggle_selection,
+                    args=(ticker, False),
+                )
+                if at_max:
+                    st.caption(
+                        f"At max ({_MAX_SEL}). Remove one first."
+                    )
 
-        # Full-history price chart with Plotly rangeselector buttons.
-        # Default view = last 5 years; user can zoom to 1y or All via the
-        # buttons above the chart.
+        # 4 metric tiles: Last close, 1d change, Pred. return, Pred. vol
+        mu = float(predictions.loc[ticker, "predicted_return"])
+        sigma = float(predictions.loc[ticker, "predicted_vol"])
+        lc = float(last_close[ticker])
+        dc = float(daily_change_pct[ticker])
+
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Last close", f"{lc:,.2f}p")
+        with m2:
+            st.metric("1d change", f"{dc:+.2f}%", delta_color="off")
+        with m3:
+            st.metric("Predicted return (1m)", f"{mu*100:+.2f}%")
+        with m4:
+            st.metric("Predicted vol (annual)", f"{sigma*100:.2f}%")
+
+        # Price chart — full history with rangeselector
         series = prices_close[ticker].dropna()
         if len(series) > 0:
             fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=series.index,
-                y=series.values,
-                mode="lines",
-                line=dict(color="#0F2540", width=2),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=series.index,
+                    y=series.values,
+                    mode="lines",
+                    line=dict(color="#0F2540", width=2),
+                )
+            )
             latest = series.index.max()
             default_start = latest - pd.DateOffset(years=5)
             fig.update_layout(
-                height=320,
+                height=300,
                 margin=dict(l=20, r=20, t=40, b=20),
                 plot_bgcolor="#FFFFFF",
                 paper_bgcolor="#FFFFFF",
@@ -275,16 +298,7 @@ def _render_detail_panel(ticker: str) -> None:
             fig.update_yaxes(fixedrange=False, autorange=True)
             st.plotly_chart(fig, use_container_width=True)
 
-        # Prediction metrics
-        mu = float(predictions.loc[ticker, "predicted_return"])
-        sigma = float(predictions.loc[ticker, "predicted_vol"])
-        m_a, m_b = st.columns(2)
-        with m_a:
-            st.metric("Predicted return (next month)", f"{mu*100:+.2f}%")
-        with m_b:
-            st.metric("Predicted annualised volatility", f"{sigma*100:.2f}%")
-
-        # SHAP plain-language reasons
+        # SHAP plain-language reasons (in-favour / against bullet list)
         st.markdown("**Why this prediction?**")
         try:
             shap_row = shap_return_df.xs(ticker, level="ticker").iloc[0]
@@ -311,8 +325,17 @@ def _render_detail_panel(ticker: str) -> None:
                 )
 
 
-if st.session_state["active_detail_ticker"]:
-    _render_detail_panel(st.session_state["active_detail_ticker"])
+active = st.session_state["active_detail_ticker"]
+if active and active in universe_tickers:
+    st.markdown("&nbsp;")
+    _render_detail_panel(active)
+else:
+    st.markdown("&nbsp;")
+    with st.container(border=True):
+        st.caption(
+            "Click any row in the table above to see that stock's chart, "
+            "predictions, and SHAP explanation here."
+        )
 
 
 # ---------- Back / Continue ----------
@@ -332,7 +355,9 @@ with cont_col:
         key="as_continue",
     ):
         log_event(
-            "page_navigation", from_page="asset_selection", to_page="diversification"
+            "page_navigation",
+            from_page="asset_selection",
+            to_page="diversification",
         )
         st.switch_page("pages/4_diversification.py")
 if not valid:

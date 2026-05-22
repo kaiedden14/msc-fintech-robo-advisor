@@ -32,6 +32,59 @@ _EPSILON = 1e-9
 _FAIL_THRESHOLD = 1e-6    # If residual delta exceeds this after the loop, reject
 
 
+def round_weights_to_integer_pp(
+    weights: dict[str, float],
+    max_weight: float = 1.0,
+) -> dict[str, float]:
+    """Round each weight to integer percentage points using the
+    largest-remainders method, preserving sum=1.0.
+
+    Used to give the Modify-slider UX clean integer-pp displays. Largest-
+    remainders is the standard apportionment algorithm: floor every weight,
+    then distribute the residual percentage points to the tickers with the
+    largest fractional remainders. Unlike naive rounding-and-adjust-the-
+    largest, this preserves cap-binding stocks at their cap (a ticker the
+    optimiser pushed to exactly 10% stays at 10%) and distributes rounding
+    error across mid-weight names instead of penalising the largest holding.
+
+    Tickers already at the cap (cap_pp) are skipped for round-up but can
+    still be rounded down if the residual is negative (over-floored due to
+    floating-point quirks).
+
+    Returns
+    -------
+    dict[str, float]
+        Weights in decimal form, each an integer multiple of 0.01,
+        summing exactly to 1.0.
+    """
+    cap_pp = round(max_weight * 100)
+    floor_pp = {t: int(w * 100) for t, w in weights.items()}
+    remainders = {t: (w * 100) - floor_pp[t] for t, w in weights.items()}
+    needed = 100 - sum(floor_pp.values())
+
+    rounded_pp = dict(floor_pp)
+    if needed > 0:
+        # Round up tickers with largest fractional remainders, skipping any
+        # already at the cap.
+        for t in sorted(remainders, key=lambda t: -remainders[t]):
+            if needed == 0:
+                break
+            if rounded_pp[t] < cap_pp:
+                rounded_pp[t] += 1
+                needed -= 1
+    elif needed < 0:
+        # Over-floored (rare; floats > integer multiples) — round down the
+        # tickers with the smallest fractional remainders.
+        for t in sorted(remainders, key=lambda t: remainders[t]):
+            if needed == 0:
+                break
+            if rounded_pp[t] > 0:
+                rounded_pp[t] -= 1
+                needed += 1
+
+    return {t: pp / 100 for t, pp in rounded_pp.items()}
+
+
 def single_anchor_renorm(
     weights: dict[str, float],
     ai_weights: dict[str, float],

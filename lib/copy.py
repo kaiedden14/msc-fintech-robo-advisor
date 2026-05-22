@@ -95,7 +95,7 @@ def shap_reasons(
     }
 
 
-# ---------- Phase 5c: waterfall data + plain-language one-liners ----------
+# ---------- Phase 5c: bar-card data + plain-language summaries ----------
 
 
 # Retail-readable labels for the 4 weight-decomposition contributions
@@ -107,86 +107,140 @@ _DECOMP_LABELS: dict[str, str] = {
 }
 
 
-def shap_waterfall_frame(shap_row: pd.Series, top_n: int = 4) -> pd.DataFrame:
-    """Build a frame for a Plotly Waterfall trace from one SHAP row.
+def _collect_shap_pairs(shap_row: pd.Series) -> list[tuple[str, float]]:
+    """Return [(feature_key, signed_shap), ...] sorted by |shap| desc."""
+    pairs = []
+    for col in shap_row.index:
+        if not col.startswith("shap_"):
+            continue
+        feature = col[len("shap_"):]
+        if feature not in _FEATURE_COPY:
+            continue
+        pairs.append((feature, float(shap_row[col])))
+    pairs.sort(key=lambda x: -abs(x[1]))
+    return pairs
 
-    Values are scaled to percentage points (×100) for display. Rows:
-    [Base] + top-N features by |SHAP| + [Prediction]. The waterfall sums
-    to the prediction only if N == 7; with top-N < 7 the chart is for
-    explanation, not accounting.
 
-    Parameters
-    ----------
-    shap_row : pd.Series
-        One row from a snapshot SHAP DataFrame — shap_* cols + feature
-        values + base_value + prediction.
-    top_n : int
-        Number of feature bars between Base and Prediction.
+def shap_bar_card_data(
+    shap_row: pd.Series,
+    top_n: int = 4,
+) -> list[dict[str, Any]]:
+    """Return top-N SHAP contributions, formatted for the bar-card UI.
 
-    Returns
-    -------
-    pd.DataFrame with columns ['label', 'value', 'measure'] suitable for
-    direct use with plotly.graph_objects.Waterfall.
+    Filters out features whose absolute contribution rounds to 0.0 pp in
+    the display layer (|value| < 0.0005 decimal = 0.05 pp). For stocks
+    where the model has weak signal, this may return fewer than top_n
+    entries — caller should render an empty-state message in that case.
+
+    Each dict has:
+      label              — retail-readable feature label
+      contribution_pp    — signed value, in percentage points
+      is_positive        — direction flag for colouring (teal vs amber)
+      fill_pct           — bar width 0..100, proportional to |value| /
+                           max(|value|) across the returned set
+    Sort order: positives by descending magnitude, then negatives by
+    descending magnitude — matches the design mockup.
     """
-    pairs = []
-    for col in shap_row.index:
-        if not col.startswith("shap_"):
-            continue
-        feature = col[len("shap_"):]
-        if feature not in _FEATURE_COPY:
-            continue
-        pairs.append((feature, float(shap_row[col])))
-    pairs.sort(key=lambda x: -abs(x[1]))
-    top = pairs[:top_n]
+    _DISPLAY_ZERO = 5e-4  # 0.05 pp — below this, the value displays as 0.0
+    pairs = [p for p in _collect_shap_pairs(shap_row) if abs(p[1]) >= _DISPLAY_ZERO]
+    pairs = pairs[:top_n]
+    if not pairs:
+        return []
+    max_abs = max(abs(v) for _, v in pairs)
+    if max_abs < 1e-12:
+        max_abs = 1.0
 
-    scale = 100.0
-    base = float(shap_row["base_value"]) * scale
-    prediction = float(shap_row["prediction"]) * scale
+    positives = sorted([p for p in pairs if p[1] > 0], key=lambda x: -x[1])
+    negatives = sorted([p for p in pairs if p[1] < 0], key=lambda x: x[1])
 
-    rows = [{"label": "Base", "value": base, "measure": "absolute"}]
-    for feature, val in top:
-        rows.append({
-            "label":   _FEATURE_COPY[feature]["label"],
-            "value":   val * scale,
-            "measure": "relative",
-        })
-    rows.append({"label": "Prediction", "value": prediction, "measure": "total"})
-    return pd.DataFrame(rows)
+    return [
+        {
+            "label":           _FEATURE_COPY[feat]["label"],
+            "contribution_pp": val * 100,
+            "is_positive":     val > 0,
+            "fill_pct":        abs(val) / max_abs * 100,
+        }
+        for feat, val in positives + negatives
+    ]
 
 
-def _top_signed_feature(shap_row: pd.Series) -> tuple[str, float]:
-    """Return (display_label, signed_shap_value) of the feature with the
-    largest absolute SHAP contribution."""
-    pairs = []
-    for col in shap_row.index:
-        if not col.startswith("shap_"):
-            continue
-        feature = col[len("shap_"):]
-        if feature not in _FEATURE_COPY:
-            continue
-        pairs.append((feature, float(shap_row[col])))
-    pairs.sort(key=lambda x: -abs(x[1]))
-    feature, val = pairs[0]
-    return _FEATURE_COPY[feature]["label"], val
+def decomp_bar_card_data(decomp_row: pd.Series) -> list[dict[str, Any]]:
+    """Return the 4 decomposition contributions formatted for the bar-card UI.
+
+    Sort order: positives by descending magnitude, then negatives by
+    descending magnitude, then zero-valued at the bottom (e.g. the `risk`
+    contribution is exactly 0 for the Balanced band by methodology design).
+    """
+    items = [
+        ("Predicted return",      float(decomp_row["return"])),
+        ("Individual volatility", float(decomp_row["variance"])),
+        ("Diversification",       float(decomp_row["covariance"])),
+        ("Your risk profile",     float(decomp_row["risk"])),
+    ]
+    # Anything below ±0.05pp (the display rounding threshold) is treated
+    # as zero visually — avoids the "-0.0 pp" with an invisible bar
+    # display artefact when a contribution rounds to zero anyway.
+    _DISPLAY_ZERO = 5e-4
+    nonzero = [(lab, v) for lab, v in items if abs(v) >= _DISPLAY_ZERO]
+    zeros = [(lab, v) for lab, v in items if abs(v) < _DISPLAY_ZERO]
+
+    max_abs = max((abs(v) for _, v in nonzero), default=1.0)
+    if max_abs < 1e-12:
+        max_abs = 1.0
+
+    positives = sorted([i for i in nonzero if i[1] > 0], key=lambda x: -x[1])
+    negatives = sorted([i for i in nonzero if i[1] < 0], key=lambda x: x[1])
+
+    return [
+        {
+            "label":           label,
+            "contribution_pp": val * 100,
+            "is_positive":     val > 0,
+            "fill_pct":        abs(val) / max_abs * 100,
+            "is_zero":         False,
+        }
+        for label, val in positives + negatives
+    ] + [
+        {
+            "label":           label,
+            "contribution_pp": 0.0,
+            "is_positive":     False,
+            "fill_pct":        0.0,
+            "is_zero":         True,
+        }
+        for label, _ in zeros
+    ]
 
 
-def shap_one_liner_return(shap_row: pd.Series, ticker: str) -> str:
-    """Natural-language one-liner for the Return SHAP sub-card."""
-    label, val = _top_signed_feature(shap_row)
-    direction = "above" if val > 0 else "below"
+def shap_summary_sentence(
+    shap_row: pd.Series,
+    ticker: str,
+    kind: str = "return",
+) -> str:
+    """Plain-language summary naming the top 3 drivers of the outlook.
+
+    kind: 'return' or 'risk' — drives the wording. Matches the design
+    mockup's narrative style.
+    """
+    pairs = _collect_shap_pairs(shap_row)[:3]
+    if not pairs:
+        return ""
+    labels = [_FEATURE_COPY[f]["label"].lower() for f, _ in pairs]
+    word = "return" if kind == "return" else "risk"
+
+    if len(labels) == 1:
+        return (
+            f"**{ticker}**'s {word} outlook is driven mainly by its "
+            f"**{labels[0]}**."
+        )
+    if len(labels) == 2:
+        return (
+            f"**{ticker}**'s {word} outlook is driven mainly by its "
+            f"**{labels[0]}** and **{labels[1]}**."
+        )
     return (
-        f"The biggest reason **{ticker}**'s predicted return sits "
-        f"**{direction}** the model's typical forecast is its **{label.lower()}**."
-    )
-
-
-def shap_one_liner_volatility(shap_row: pd.Series, ticker: str) -> str:
-    """Natural-language one-liner for the Volatility SHAP sub-card."""
-    label, val = _top_signed_feature(shap_row)
-    direction = "above" if val > 0 else "below"
-    return (
-        f"The biggest reason **{ticker}**'s predicted risk sits "
-        f"**{direction}** the model's typical forecast is its **{label.lower()}**."
+        f"**{ticker}**'s {word} outlook is driven mainly by its "
+        f"**{labels[0]}**, **{labels[1]}**, and **{labels[2]}**."
     )
 
 
