@@ -99,11 +99,11 @@ def build_features(clean_df: pd.DataFrame) -> pd.DataFrame:
         vix.reindex(feature_df.index.get_level_values("date")).values
     )
 
-    # Forward targets
+    # Forward targets (63 trading days ≈ 1 quarter)
     daily_returns = close.pct_change(fill_method=None)
-    forward_returns = close.pct_change(21).shift(-21)
+    forward_returns = close.pct_change(63).shift(-63)
     forward_volatility = daily_returns.rolling(
-        21).std().shift(-21) * (252 ** 0.5)
+        63).std().shift(-63) * (252 ** 0.5)
 
     target_return = forward_returns.stack(future_stack=True)
     target_return.index.names = ["date", "ticker"]

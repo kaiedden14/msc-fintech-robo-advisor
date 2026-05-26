@@ -22,7 +22,7 @@ def show_methodology() -> None:
 
 1. You select 5–15 FTSE 100 stocks from a curated universe.
 2. Two machine-learning models forecast each selected stock's
-   expected return and realised volatility for the month ahead.
+   expected return and realised volatility for the quarter ahead.
 3. A mean-variance optimiser combines those forecasts with a historical
    covariance estimate and your chosen risk profile to recommend a set
    of portfolio weights.

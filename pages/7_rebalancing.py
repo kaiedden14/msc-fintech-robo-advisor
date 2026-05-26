@@ -1,7 +1,7 @@
 """Rebalancing — Phase 7.
 
 Session-closure page. Recaps the participant's final allocation, explains
-the monthly rebalance cadence, and offers Start Over (clear state) or
+the quarterly rebalance cadence, and offers Start Over (clear state) or
 Finish (log session_end + show a thank-you card). No optimiser computation
 — just reads from state.
 """
@@ -161,9 +161,9 @@ with st.container(border=True):
         "- **The recommendation refreshes daily** when you click **Refresh data** "
         "in the sidebar. New prices flow into the features; the optimiser re-runs "
         "with up-to-date forecasts.\n"
-        "- **Suggested cadence: once a month.** The features the model uses move "
+        "- **Suggested cadence: once a quarter.** The features the model uses move "
         "slowly (12-month momentum, 252-day beta, 21-day volatility), so day-to-day "
-        "shifts in the recommendation are small. Monthly rebalancing captures "
+        "shifts in the recommendation are small. Quarterly rebalancing captures "
         "meaningful drift without forcing you to act on noise.\n"
         "- **What changes between refreshes**: predicted returns and volatilities "
         "shift as new price data arrives; the SHAP attributions update accordingly; "

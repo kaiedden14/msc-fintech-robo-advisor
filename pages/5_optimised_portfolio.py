@@ -98,7 +98,7 @@ with st.container(border=True):
     with c2:
         st.metric("Stocks held", f"{n_active} of {len(selected)}")
     with c3:
-        st.metric("Expected return (1 month)", f"{expected_return * 100:+.2f}%")
+        st.metric("Expected return (1 quarter)", f"{expected_return * 100:+.2f}%")
     with c4:
         st.metric("Expected volatility (annualised)", f"{expected_vol * 100:.2f}%")
     st.caption(

@@ -19,7 +19,7 @@ def compute_shap_values(
         The frozen volatility RF (rf_volatility_v4).
     feature_matrix : pd.DataFrame
         Feature matrix MultiIndexed on (date, ticker). Expected production
-        input is one month's cross-section (~80 rows), but the function
+        input is one date's cross-section (~80 rows), but the function
         accepts any (date, ticker)-indexed matrix — the same function is
         used for development-time inspection over larger windows.
     feature_cols : list[str]
@@ -51,7 +51,7 @@ def compute_shap_values(
         raise ValueError("No complete-feature rows remain after NaN removal.")
 
     # Instantiate explainer — tree_path_dependent requires no background dataset.
-    # Chosen over interventional because this pipeline runs monthly on drifting
+    # Chosen over interventional because this pipeline runs quarterly on drifting
     # live data; fixing a stable background dataset is a recurring methodological
     # burden that tree_path_dependent avoids. Limitation: moderate correlations
     # among risk-signal features (volatility_21d, beta_252, vix) will cause some

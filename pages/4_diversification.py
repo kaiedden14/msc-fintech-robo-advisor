@@ -1,7 +1,7 @@
 """Diversification Check — Phase 4.
 
 Pairwise correlation heatmap over the user's selected tickers, plus a
-side card listing pairs with |ρ| > 0.7. Informational and non-blocking
+side card listing pairs with |ρ| > 0.6. Informational and non-blocking
 — Continue is enabled regardless of flag count.
 """
 
@@ -15,7 +15,7 @@ from lib.logger import log_event
 from lib.sidebar import render_page_footer
 
 
-_THRESHOLD = 0.7
+_THRESHOLD = 0.6
 _LOOKBACK = 252  # trading days — matches the optimiser's Ledoit-Wolf window
 
 
@@ -44,7 +44,7 @@ if not selected or len(selected) < 5:
 st.title("Diversification Check")
 st.caption(
     "How correlated are your chosen stocks with each other? "
-    "Highly-correlated pairs (|ρ| above 0.7) tend to move together in market shocks "
+    "Highly-correlated pairs (|ρ| above 0.6) tend to move together in market shocks "
     "— diversification benefits are weaker between them."
 )
 
@@ -81,18 +81,18 @@ if st.session_state["correlation_flags"] != flagged:
 z = corr.values.astype(float).copy()
 np.fill_diagonal(z, np.nan)
 
-# Use |ρ| for the colorscale (sequential off-white → navy below 0.7, amber above).
+# Use |ρ| for the colorscale (sequential off-white → navy below 0.6, amber above).
 # Text annotations show the signed value so sign is still visible.
 z_abs = np.abs(z)
 text_annot = np.where(np.isnan(z), "", np.vectorize(lambda v: f"{v:.2f}")(z))
 
 # Two-zone Plotly colorscale: off-white → navy gradient, then a hard jump to
-# amber at the 0.7 cutoff so any cell above the threshold is unmistakable.
+# amber at the 0.6 cutoff so any cell above the threshold is unmistakable.
 colorscale = [
     [0.00, "#F7F6F2"],   # off-white (page surface)
-    [0.35, "#7F8FA8"],   # mid navy-grey
-    [0.6999, "#0F2540"], # deep navy just below threshold
-    [0.70, "#C97A1F"],   # amber at threshold
+    [0.30, "#7F8FA8"],   # mid navy-grey
+    [0.5999, "#0F2540"], # deep navy just below threshold
+    [0.60, "#C97A1F"],   # amber at threshold
     [1.00, "#C97A1F"],   # amber to top
 ]
 
@@ -111,8 +111,8 @@ fig = go.Figure(
         hovertemplate="%{y} × %{x}<br>ρ = %{text}<extra></extra>",
         colorbar=dict(
             title="|ρ|",
-            tickvals=[0, 0.35, 0.7, 1.0],
-            ticktext=["0", "0.35", "0.70", "1.0"],
+            tickvals=[0, 0.3, 0.6, 1.0],
+            ticktext=["0", "0.30", "0.60", "1.0"],
         ),
     )
 )
@@ -136,7 +136,7 @@ with heat_col:
 with list_col:
     with st.container(border=True):
         if flagged:
-            st.markdown(f"**{len(flagged)} pair(s) above 0.7**")
+            st.markdown(f"**{len(flagged)} pair(s) above 0.6**")
             st.caption(
                 "Pairs of stocks whose returns are highly correlated. Holding "
                 "both gives smaller diversification benefit than holding either "
@@ -151,7 +151,7 @@ with list_col:
         else:
             st.markdown("**No flagged pairs**")
             st.caption(
-                "None of your selected stocks have correlation above 0.7. "
+                "None of your selected stocks have correlation above 0.6. "
                 "Your selection is reasonably diversified by this measure."
             )
 

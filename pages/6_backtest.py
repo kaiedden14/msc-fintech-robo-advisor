@@ -1,6 +1,6 @@
 """Forward Projection — Phase 6.
 
-Monte Carlo cone over a 12-month horizon for the participant's accepted
+Monte Carlo cone over a 4-quarter (1-year) horizon for the participant's accepted
 portfolio, with the FTSE 100 median as a benchmark line. Reads the final
 weights (AI or user-modified) from state, uses the optimiser's cov matrix
 to compute portfolio variance, and renders an overlay chart + summary card.
@@ -84,22 +84,22 @@ ftse_params = benchmark_params_from_history(prices_close["^FTSE"], lookback_year
 # ---------- Run the projections ----------
 
 portfolio_proj = project_forward(
-    monthly_return=final_er,
+    period_return=final_er,
     annual_vol=final_vol,
-    horizon_months=12,
+    horizon_periods=4,
     n_paths=1000,
     seed=42,
 )
 ftse_proj = project_forward(
-    monthly_return=ftse_params["monthly_return"],
+    period_return=ftse_params["period_return"],
     annual_vol=ftse_params["annual_vol"],
-    horizon_months=12,
+    horizon_periods=4,
     n_paths=1000,
     seed=42,
 )
 
 # Scale all cumulative multipliers by the investment amount
-months = np.arange(13)  # 0..12
+quarters = np.arange(5)  # 0..4 (start + 4 quarterly steps = 1 year)
 p_bands = portfolio_proj["percentile_bands"]
 f_bands = ftse_proj["percentile_bands"]
 
@@ -135,7 +135,7 @@ log_event(
 
 st.title("Forward Projection")
 st.caption(
-    "Where your portfolio could be in 12 months. Simulated 1,000 times. "
+    "Where your portfolio could be over the next year (4 quarters). Simulated 1,000 times. "
     "FTSE 100 included as a benchmark for comparison."
 )
 
@@ -154,36 +154,36 @@ fig.add_hline(
 
 # Portfolio downside (5th percentile) — amber, the "what could go wrong" line
 fig.add_trace(go.Scatter(
-    x=months, y=p5, mode="lines",
+    x=quarters, y=p5, mode="lines",
     line=dict(color="#C97A1F", width=2, dash="dot"),
     name="Portfolio downside (5th %ile)",
-    hovertemplate="Month %{x}<br>Downside: £%{y:,.0f}<extra></extra>",
+    hovertemplate="Quarter %{x}<br>Downside: £%{y:,.0f}<extra></extra>",
 ))
 # Portfolio upside (95th percentile) — teal, the "what could go right" line
 fig.add_trace(go.Scatter(
-    x=months, y=p95, mode="lines",
+    x=quarters, y=p95, mode="lines",
     line=dict(color="#0E8E8E", width=2, dash="dot"),
     name="Portfolio upside (95th %ile)",
-    hovertemplate="Month %{x}<br>Upside: £%{y:,.0f}<extra></extra>",
+    hovertemplate="Quarter %{x}<br>Upside: £%{y:,.0f}<extra></extra>",
 ))
 # Portfolio median — navy, prominent, with start + end markers for visual anchor
 fig.add_trace(go.Scatter(
-    x=months, y=p50, mode="lines+markers",
+    x=quarters, y=p50, mode="lines+markers",
     line=dict(color="#0F2540", width=3.2),
     marker=dict(
-        size=[8] + [0] * (len(months) - 2) + [10],  # start dot + end dot only
+        size=[8] + [0] * (len(quarters) - 2) + [10],  # start dot + end dot only
         color="#0F2540",
         line=dict(color="#FFFFFF", width=1),
     ),
     name="Portfolio median",
-    hovertemplate="Month %{x}<br>Median: £%{y:,.0f}<extra></extra>",
+    hovertemplate="Quarter %{x}<br>Median: £%{y:,.0f}<extra></extra>",
 ))
 # FTSE 100 median — grey, comparison benchmark
 fig.add_trace(go.Scatter(
-    x=months, y=f50, mode="lines",
+    x=quarters, y=f50, mode="lines",
     line=dict(color="#5A5A5A", width=2, dash="dash"),
     name="FTSE 100 median",
-    hovertemplate="Month %{x}<br>FTSE: £%{y:,.0f}<extra></extra>",
+    hovertemplate="Quarter %{x}<br>FTSE: £%{y:,.0f}<extra></extra>",
 ))
 
 # End-of-line value annotations at month 12 — the interpretive moments.
@@ -197,7 +197,7 @@ for value, colour in [
     (p5[-1],   "#C97A1F"),
 ]:
     fig.add_annotation(
-        x=12, y=value,
+        x=4, y=value,
         text=f"<b>£{value:,.0f}</b>",
         showarrow=False, xanchor="left", yanchor="middle",
         xshift=8,
@@ -206,7 +206,7 @@ for value, colour in [
 
 # Starting capital label at the right edge, on the dotted reference line.
 fig.add_annotation(
-    x=12, y=amount,
+    x=4, y=amount,
     text=f"Start · £{amount:,.0f}",
     showarrow=False, xanchor="left", yanchor="middle",
     xshift=8,
@@ -220,9 +220,9 @@ fig.update_layout(
     plot_bgcolor="#FFFFFF",
     paper_bgcolor="#FFFFFF",
     xaxis=dict(
-        title="Months ahead",
+        title="Quarters ahead",
         tickmode="linear", tick0=0, dtick=1,
-        range=[-0.2, 12.8],
+        range=[-0.2, 4.8],
         color="#5A5A5A",
         showgrid=False,
     ),
@@ -253,7 +253,7 @@ downside_return_pct = (p5[-1] / amount - 1) * 100
 upside_return_pct = (p95[-1] / amount - 1) * 100
 
 with st.container(border=True):
-    st.markdown("**12-month projection summary**")
+    st.markdown("**1-year projection summary**")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric(
@@ -285,7 +285,7 @@ with st.container(border=True):
     direction = "above" if delta_vs_ftse >= 0 else "below"
     st.markdown(
         f"On the median outcome, your portfolio finishes "
-        f"**£{abs(delta_vs_ftse):,.0f} {direction}** the FTSE 100 over the next 12 months."
+        f"**£{abs(delta_vs_ftse):,.0f} {direction}** the FTSE 100 over the next year."
     )
 
 
@@ -294,12 +294,12 @@ with st.container(border=True):
 st.markdown("&nbsp;")
 with st.container(border=True):
     st.caption(
-        "**Methodology note.** Projections assume monthly returns are "
+        "**Methodology note.** Projections assume quarterly returns are "
         "normally distributed (Gaussian Monte Carlo, 1,000 paths, fixed seed). "
         "Real markets have fatter tails than this assumes — both severe "
         "drawdowns and rallies are more likely than the cone suggests "
         "(Cont, 2001). Treat these as broad scenarios, not precise forecasts. "
-        f"FTSE 100 parameters estimated from the trailing 5 years of monthly "
+        f"FTSE 100 parameters estimated from the trailing 10 years of quarterly "
         f"returns ({ftse_params['window_start'].date()} to "
         f"{ftse_params['window_end'].date()})."
     )

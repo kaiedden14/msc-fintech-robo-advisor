@@ -25,9 +25,9 @@ def load_universe_metadata() -> pd.DataFrame:
 
 @st.cache_data
 def load_predictions() -> pd.DataFrame:
-    """Per-ticker predicted_return and predicted_vol from the monthly snapshot.
+    """Per-ticker predicted_return and predicted_vol from the quarterly snapshot.
 
-    Index: ticker. Columns: predicted_return (monthly, decimal),
+    Index: ticker. Columns: predicted_return (quarterly, decimal),
     predicted_vol (annualised, decimal).
     """
     return pd.read_parquet(_DATA_DIR / "snapshot_predictions.parquet")

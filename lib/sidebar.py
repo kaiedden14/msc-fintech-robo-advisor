@@ -144,8 +144,8 @@ def _handle_refresh_data() -> None:
     raw_path = Path("data/raw/prices.parquet")
     clean_path = Path("data/processed/prices_clean.parquet")
     features_path = Path("data/processed/features.parquet")
-    return_model_path = Path("models/rf_return_v5.joblib")
-    vol_model_path = Path("models/rf_volatility_v5.joblib")
+    return_model_path = Path("models/rf_return_v6.joblib")
+    vol_model_path = Path("models/rf_volatility_v6.joblib")
     output_dir = Path("data/processed")
 
     success = False

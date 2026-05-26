@@ -250,7 +250,7 @@ def _render_detail_panel(ticker: str) -> None:
         with m2:
             st.metric("1d change", f"{dc:+.2f}%", delta_color="off")
         with m3:
-            st.metric("Predicted return (1m)", f"{mu*100:+.2f}%")
+            st.metric("Predicted return (1q)", f"{mu*100:+.2f}%")
         with m4:
             st.metric("Predicted vol (annual)", f"{sigma*100:.2f}%")
 
