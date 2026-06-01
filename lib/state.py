@@ -65,9 +65,14 @@ DEFAULTS: dict[str, Any] = {
     "projection_results":     None,
     "active_detail_ticker":   None,
     "decision":               None,
-    "consent_acknowledged":   False,
+    # Consent is handled out-of-band via a paper form signed in person before
+    # the session. The flag is kept in state for the event-log schema but
+    # defaults to True so the in-app flow is not gated on a duplicate capture.
+    "consent_acknowledged":   True,
     "session_start_logged":   False,
     "participant_id":         None,
+    # Rebalancing — fresh recommendation produced by the re-check action
+    "fresh_recommendation":   None,  # dict with 'weights', 'expected_return', 'expected_vol'
 }
 
 

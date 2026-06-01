@@ -11,7 +11,6 @@ import streamlit as st
 
 
 _STEPS: list[tuple[str, str]] = [
-    ("Landing",             "pages/1_landing.py"),
     ("Risk Profile",        "pages/2_risk_profile.py"),
     ("Asset Selection",     "pages/3_asset_selection.py"),
     ("Diversification",     "pages/4_diversification.py"),
@@ -56,12 +55,34 @@ def render_sidebar(current_page) -> None:
 
         # Footer disclaimer (sidebar copy; per-page disclaimer rendered separately)
         st.markdown(
-            "<div class='ra-footer-sidebar'>Academic prototype — not financial advice</div>",
+            "<div class='ra-footer-sidebar'>Simulated allocations — not financial advice</div>",
             unsafe_allow_html=True,
         )
 
 
+_VALID_PARTICIPANT_IDS = [f"P{i:02d}" for i in range(1, 11)]  # P01..P10
+
+
 def _render_session_card() -> None:
+    from lib.logger import log_event
+
+    # Participant ID — set by the researcher at the start of each session.
+    # Lives in the sidebar rather than the participant-facing landing page
+    # so the dashboard reads as a product, not a research instrument.
+    current_pid = st.session_state.get("participant_id")
+    selected_pid = st.selectbox(
+        "Participant",
+        options=[""] + _VALID_PARTICIPANT_IDS,
+        index=(_VALID_PARTICIPANT_IDS.index(current_pid) + 1)
+        if current_pid in _VALID_PARTICIPANT_IDS
+        else 0,
+        placeholder="Select…",
+        key="sidebar_participant_pid",
+    )
+    if selected_pid and selected_pid != current_pid:
+        st.session_state["participant_id"] = selected_pid
+        log_event("participant_id_set", previous=current_pid, new=selected_pid)
+
     rp = st.session_state.get("risk_profile") or "—"
     amt = st.session_state.get("investment_amount")
     amt_str = f"£{amt:,.0f}" if amt else "—"
@@ -87,7 +108,7 @@ def _render_session_card() -> None:
 def render_page_footer() -> None:
     """Render the per-page footer disclaimer. Call at the bottom of every page."""
     st.markdown(
-        "<div class='ra-footer-page'>Academic prototype — not financial advice</div>",
+        "<div class='ra-footer-page'>Simulated allocations — not financial advice</div>",
         unsafe_allow_html=True,
     )
 

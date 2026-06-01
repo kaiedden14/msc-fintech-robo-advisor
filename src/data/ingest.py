@@ -276,7 +276,14 @@ def refresh_features(
 
     clean_df = pd.read_parquet(clean_prices_path)
     feature_df = build_features(clean_df)
-    feature_clean = feature_df.dropna()
+    # Drop rows where any *input feature* is NaN, but KEEP rows where only
+    # the forward_return / forward_volatility targets are NaN. The last 63
+    # trading days will have NaN targets (because the forward window ends
+    # in the future); those rows are still valid for prediction-time
+    # snapshots even though they're unusable for training.
+    target_cols = {"forward_return", "forward_volatility"}
+    feature_only_cols = [c for c in feature_df.columns if c not in target_cols]
+    feature_clean = feature_df.dropna(subset=feature_only_cols)
 
     features_path.parent.mkdir(parents=True, exist_ok=True)
     feature_clean.to_parquet(features_path)

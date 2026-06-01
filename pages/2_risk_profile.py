@@ -38,7 +38,7 @@ _BAND_EXPLANATIONS: dict[str, str] = {
 
 
 # Guard: require Landing to be completed first
-if not st.session_state["consent_acknowledged"] or not st.session_state["participant_id"]:
+if not st.session_state["participant_id"]:
     st.title("Risk Profile")
     st.warning("Please complete the Landing page first.")
     if st.button("Back to Landing"):

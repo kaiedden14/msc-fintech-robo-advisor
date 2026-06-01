@@ -1,13 +1,9 @@
-"""Forward Projection — Phase 6.
+"""Forward Projection.
 
-Monte Carlo cone over a 4-quarter (1-year) horizon for the participant's accepted
+Monte Carlo cone over a 4-quarter (1-year) horizon for the user's accepted
 portfolio, with the FTSE 100 median as a benchmark line. Reads the final
 weights (AI or user-modified) from state, uses the optimiser's cov matrix
 to compute portfolio variance, and renders an overlay chart + summary card.
-
-Methodology note rendered explicitly: Gaussian assumption understates
-fat-tail risk (Cont, 2001). Disclosed in-product so the trust intervention
-remains honest.
 """
 
 import numpy as np
@@ -289,19 +285,17 @@ with st.container(border=True):
     )
 
 
-# ---------- Methodology disclosure ----------
+# ---------- About this projection ----------
 
 st.markdown("&nbsp;")
 with st.container(border=True):
     st.caption(
-        "**Methodology note.** Projections assume quarterly returns are "
-        "normally distributed (Gaussian Monte Carlo, 1,000 paths, fixed seed). "
-        "Real markets have fatter tails than this assumes — both severe "
-        "drawdowns and rallies are more likely than the cone suggests "
-        "(Cont, 2001). Treat these as broad scenarios, not precise forecasts. "
-        f"FTSE 100 parameters estimated from the trailing 10 years of quarterly "
-        f"returns ({ftse_params['window_start'].date()} to "
-        f"{ftse_params['window_end'].date()})."
+        "**About this projection.** This is a simulation showing the range of "
+        "outcomes your portfolio could see over the next year, based on its "
+        "expected return and volatility. Real markets sometimes move more "
+        "sharply than the simulation suggests, so treat these as broad scenarios "
+        "rather than predictions. The FTSE 100 line is based on 10 years of "
+        "historical quarterly data."
     )
 
 

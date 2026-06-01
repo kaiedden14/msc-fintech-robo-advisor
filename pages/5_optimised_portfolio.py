@@ -20,6 +20,7 @@ from lib.copy import (
 )
 from lib.data import load_predictions, load_universe_metadata
 from lib.logger import log_event
+from lib.persistence import save_portfolio
 from lib.portfolio import (
     compute_recommendation,
     round_weights_to_integer_pp,
@@ -101,11 +102,7 @@ with st.container(border=True):
         st.metric("Expected return (1 quarter)", f"{expected_return * 100:+.2f}%")
     with c4:
         st.metric("Expected volatility (annualised)", f"{expected_vol * 100:.2f}%")
-    st.caption(
-        f"Total to allocate: £{amount:,.0f} · "
-        f"Optimiser engine: mean-variance SLSQP with Ledoit-Wolf correlation "
-        f"and RF-predicted volatilities."
-    )
+    st.caption(f"Total to allocate: £{amount:,.0f}")
 
 
 # ---------- Phase 5b / 5c placeholders ----------
@@ -270,9 +267,8 @@ def _render_modify_section() -> None:
             "Adjust each stock's weight by up to ±5 percentage points from the "
             "AI's recommendation. When you raise one weight, the largest other "
             "holding is reduced automatically so the total stays at 100%. "
-            "Per academic research (Dietvorst et al., 2018), constrained editing "
-            "of algorithm output increases user trust without compromising the "
-            "model's recommendation."
+            "Fine-tuning lets you keep control while preserving the optimiser's "
+            "overall structure."
         )
 
         cap_pp = int(round(cap * 100))
@@ -677,11 +673,19 @@ with action_right:
     ):
         umw = st.session_state["user_modified_weights"]
         ai = st.session_state["optimised_weights"]
-        if umw is not None and any(abs(umw[t] - ai[t]) > 1e-6 for t in umw):
+        # Compare against the rounded baseline (which is the slider grid's
+        # zero-point), not the raw float AI weights — otherwise sub-pp
+        # rounding noise from the slider initialisation falsely registers
+        # as a user modification.
+        cap = effective_cap(len(ai))
+        ai_rounded = round_weights_to_integer_pp(ai, max_weight=cap)
+        if umw is not None and any(
+            abs(umw[t] - ai_rounded[t]) > 1e-6 for t in umw
+        ):
             choice = "modify"
             final = dict(umw)
             total_pp_deviation = sum(
-                abs(umw[t] - ai[t]) for t in umw
+                abs(umw[t] - ai_rounded[t]) for t in umw
             ) * 100.0
         else:
             choice = "accept"
@@ -695,6 +699,20 @@ with action_right:
             final_weights=final,
             total_pp_deviation=float(total_pp_deviation),
         )
+
+        # Persist the accepted portfolio so the rebalancing page can show
+        # real performance from this investment date forward, day by day.
+        pid = st.session_state.get("participant_id")
+        if pid:
+            save_portfolio(
+                participant_id=pid,
+                weights=final,
+                selected_tickers=list(st.session_state["selected_tickers"]),
+                investment_amount=float(st.session_state["investment_amount"] or 0.0),
+                risk_band=st.session_state["risk_profile"],
+                decision=choice,
+            )
+
         st.switch_page("pages/6_backtest.py")
 
 
