@@ -283,7 +283,7 @@ def _render_detail_panel(ticker: str) -> None:
                             dict(count=5, label="5y", step="year", stepmode="backward"),
                             dict(step="all", label="All"),
                         ],
-                        bgcolor="#F7F6F2",
+                        bgcolor="#F2EAD5",
                         activecolor="#0F2540",
                         font=dict(color="#1A1A1A"),
                     ),

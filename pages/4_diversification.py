@@ -89,7 +89,7 @@ text_annot = np.where(np.isnan(z), "", np.vectorize(lambda v: f"{v:.2f}")(z))
 # Two-zone Plotly colorscale: off-white → navy gradient, then a hard jump to
 # amber at the 0.6 cutoff so any cell above the threshold is unmistakable.
 colorscale = [
-    [0.00, "#F7F6F2"],   # off-white (page surface)
+    [0.00, "#F2EAD5"],   # cream (page surface)
     [0.30, "#7F8FA8"],   # mid navy-grey
     [0.5999, "#0F2540"], # deep navy just below threshold
     [0.60, "#C97A1F"],   # amber at threshold

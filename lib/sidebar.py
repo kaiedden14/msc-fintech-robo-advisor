@@ -60,7 +60,7 @@ def render_sidebar(current_page) -> None:
         )
 
 
-_VALID_PARTICIPANT_IDS = [f"P{i:02d}" for i in range(1, 11)]  # P01..P10
+_VALID_PARTICIPANT_IDS = ["Test"] + [f"P{i:02d}" for i in range(1, 11)]  # Test + P01..P10
 
 
 def _render_session_card() -> None:
