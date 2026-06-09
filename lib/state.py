@@ -73,6 +73,9 @@ DEFAULTS: dict[str, Any] = {
     "participant_id":         None,
     # Rebalancing — fresh recommendation produced by the re-check action
     "fresh_recommendation":   None,  # dict with 'weights', 'expected_return', 'expected_vol'
+    # Rebalancing — explicit "Confirm portfolio" click marks the session as
+    # complete. Logs a session_end event and disables the confirm control.
+    "portfolio_confirmed":    False,
 }
 
 

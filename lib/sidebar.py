@@ -35,6 +35,15 @@ def render_sidebar(current_page) -> None:
             unsafe_allow_html=True,
         )
 
+        # Home — discreet link back to the landing page from anywhere in the flow
+        if st.button(
+            "Home",
+            key="nav_home",
+            use_container_width=True,
+            type="secondary",
+        ):
+            st.switch_page("pages/1_landing.py")
+
         st.markdown("<div class='ra-section-label'>Steps</div>", unsafe_allow_html=True)
         for i, (label, path) in enumerate(_STEPS, start=1):
             is_active = (current_page.title == label)
@@ -82,6 +91,38 @@ def _render_session_card() -> None:
     if selected_pid and selected_pid != current_pid:
         st.session_state["participant_id"] = selected_pid
         log_event("participant_id_set", previous=current_pid, new=selected_pid)
+
+        # If this participant has a saved portfolio on disk, hydrate the
+        # session state from it so they can navigate directly to Rebalancing
+        # and view their existing allocation + accumulated performance.
+        from lib.persistence import load_portfolio
+        saved = load_portfolio(selected_pid)
+        if saved is not None:
+            st.session_state["risk_profile"] = saved.get("risk_band")
+            st.session_state["investment_amount"] = float(
+                saved.get("investment_amount") or 0.0
+            )
+            st.session_state["selected_tickers"] = list(
+                saved.get("selected_tickers", [])
+            )
+            st.session_state["optimised_weights"] = {
+                k: float(v) for k, v in saved.get("weights", {}).items()
+            }
+            st.session_state["user_modified_weights"] = None
+            st.session_state["decision"] = saved.get("decision")
+            # Each participant load is a fresh view — clear any prior
+            # session's confirmation state so the Confirm button reappears.
+            st.session_state["portfolio_confirmed"] = False
+            log_event(
+                "saved_portfolio_loaded",
+                participant_id=selected_pid,
+                investment_date=saved.get("investment_date"),
+            )
+            st.toast(
+                f"Loaded {selected_pid}'s saved portfolio.",
+                icon="✅",
+            )
+            st.rerun()
 
     rp = st.session_state.get("risk_profile") or "—"
     amt = st.session_state.get("investment_amount")

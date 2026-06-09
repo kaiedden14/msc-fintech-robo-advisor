@@ -420,11 +420,19 @@ with st.expander("About rebalancing"):
     )
 
 
-# ---------- Footer: Start Over ----------
+# ---------- Footer: Confirm portfolio / Start over ----------
 
 st.markdown("&nbsp;")
 
-start_over_col, _ = st.columns([1, 3])
+confirmed = st.session_state.get("portfolio_confirmed", False)
+
+if confirmed:
+    st.success("Portfolio confirmed — your session has been saved.")
+else:
+    st.caption("If you are happy with the portfolio, click **Confirm portfolio**.")
+
+start_over_col, confirm_col, _ = st.columns([1, 1, 2], gap="medium")
+
 with start_over_col:
     if st.button(
         "Start over",
@@ -439,6 +447,40 @@ with start_over_col:
             delete_portfolio(pid)
         reset_for_restart()
         st.switch_page("pages/1_landing.py")
+
+with confirm_col:
+    if confirmed:
+        # Disabled badge — clearly shows the action has been completed.
+        st.button(
+            "✓ Portfolio confirmed",
+            key="rb_confirm_done",
+            use_container_width=True,
+            disabled=True,
+        )
+    else:
+        if st.button(
+            "Confirm portfolio",
+            type="primary",
+            key="rb_confirm",
+            use_container_width=True,
+        ):
+            try:
+                started = datetime.fromisoformat(
+                    st.session_state["session_started_at"]
+                )
+                duration_s = int((datetime.now() - started).total_seconds())
+            except Exception:
+                duration_s = None
+            log_event(
+                "session_end",
+                total_duration_s=duration_s,
+                final_decision=st.session_state.get("decision"),
+                weights_source=weights_source,
+                final_weights=final_weights,
+            )
+            st.session_state["portfolio_confirmed"] = True
+            st.toast("Portfolio confirmed — session saved.", icon="✓")
+            st.rerun()
 
 
 render_page_footer()
