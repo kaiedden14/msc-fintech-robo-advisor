@@ -17,3 +17,14 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Local editor and tooling
+.claude/
+
+# Participant data — privacy-sensitive, kept local only
+data/logs/
+data/portfolios/*
+!data/portfolios/Test.json
+
+# Local documentation drafts (methodology, portfolio submissions)
+docs/
