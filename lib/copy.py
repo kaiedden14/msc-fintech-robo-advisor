@@ -1,11 +1,11 @@
 """Plain-language templating for SHAP attribution cards.
 
 Translates raw SHAP values into retail-readable sentences. String
-formatting only — no LLM calls. Templates are deterministic so the
+formatting only, no LLM calls. Templates are deterministic so the
 methodology write-up can show the exact transformation rule.
 
 The display labels and value phrasings were chosen for retail
-explainability — e.g. 'Recent volatility' instead of 'volatility_21d',
+explainability, e.g. 'Recent volatility' instead of 'volatility_21d',
 'Market sensitivity' instead of 'beta_252'.
 """
 
@@ -58,7 +58,7 @@ def shap_reasons(
     Parameters
     ----------
     shap_row : pd.Series
-        One row from a snapshot SHAP DataFrame — contains shap_* columns,
+        One row from a snapshot SHAP DataFrame, contains shap_* columns,
         feature value columns, base_value, and prediction.
     top_n_positive, top_n_negative : int
         Number of features to surface on each side.
@@ -82,6 +82,7 @@ def shap_reasons(
     negative = sorted([p for p in pairs if p[2] < 0], key=lambda x: x[2])
 
     def _render(feature: str, feat_val: float, shap_val: float) -> dict[str, Any]:
+        """Format one SHAP attribution into a label + value description + pp number."""
         c = _FEATURE_COPY[feature]
         return {
             "label": c["label"],
@@ -130,18 +131,18 @@ def shap_bar_card_data(
     Filters out features whose absolute contribution rounds to 0.0 pp in
     the display layer (|value| < 0.0005 decimal = 0.05 pp). For stocks
     where the model has weak signal, this may return fewer than top_n
-    entries — caller should render an empty-state message in that case.
+    entries, caller should render an empty-state message in that case.
 
     Each dict has:
-      label              — retail-readable feature label
-      contribution_pp    — signed value, in percentage points
-      is_positive        — direction flag for colouring (teal vs amber)
-      fill_pct           — bar width 0..100, proportional to |value| /
+      label             , retail-readable feature label
+      contribution_pp   , signed value, in percentage points
+      is_positive       , direction flag for colouring (teal vs amber)
+      fill_pct          , bar width 0..100, proportional to |value| /
                            max(|value|) across the returned set
     Sort order: positives by descending magnitude, then negatives by
-    descending magnitude — matches the design mockup.
+    descending magnitude, matches the design mockup.
     """
-    _DISPLAY_ZERO = 5e-4  # 0.05 pp — below this, the value displays as 0.0
+    _DISPLAY_ZERO = 5e-4  # 0.05 pp, below this, the value displays as 0.0
     pairs = [p for p in _collect_shap_pairs(shap_row) if abs(p[1]) >= _DISPLAY_ZERO]
     pairs = pairs[:top_n]
     if not pairs:
@@ -178,7 +179,7 @@ def decomp_bar_card_data(decomp_row: pd.Series) -> list[dict[str, Any]]:
         ("Your risk profile",     float(decomp_row["risk"])),
     ]
     # Anything below ±0.05pp (the display rounding threshold) is treated
-    # as zero visually — avoids the "-0.0 pp" with an invisible bar
+    # as zero visually, avoids the "-0.0 pp" with an invisible bar
     # display artefact when a contribution rounds to zero anyway.
     _DISPLAY_ZERO = 5e-4
     nonzero = [(lab, v) for lab, v in items if abs(v) >= _DISPLAY_ZERO]
@@ -219,7 +220,7 @@ def shap_summary_sentence(
 ) -> str:
     """Plain-language summary naming the top 3 drivers of the outlook.
 
-    kind: 'return' or 'risk' — drives the wording. Matches the design
+    kind: 'return' or 'risk', drives the wording. Matches the design
     mockup's narrative style.
     """
     pairs = _collect_shap_pairs(shap_row)[:3]
@@ -248,7 +249,7 @@ def decomposition_summary(decomp_row: pd.Series, ticker: str) -> str:
     """Natural-language summary for the weight decomposition sub-card.
 
     Identifies the dominant contribution (largest |value|) among the four
-    components — return, variance, covariance, risk — and renders a
+    components, return, variance, covariance, risk, and renders a
     one-sentence narrative. Handles the all-near-zero case (stock sits at
     the baseline) explicitly.
     """
@@ -263,7 +264,7 @@ def decomposition_summary(decomp_row: pd.Series, ticker: str) -> str:
 
     if abs(top_val) < 0.001:
         return (
-            f"All four contributions for **{ticker}** are small — its weight "
+            f"All four contributions for **{ticker}** are small, its weight "
             f"is close to the baseline allocation."
         )
 
@@ -279,7 +280,7 @@ def bucket_vol_outlook(predicted_vols: pd.Series) -> pd.Series:
 
     Returns "Elevated ↑" / "Moderate" / "Low" based on cross-sectional
     terciles. Callers should pass the FULL universe predictions (93 tickers)
-    so bands remain meaningful at any selection size — passing a 5-stock
+    so bands remain meaningful at any selection size, passing a 5-stock
     slice would give noisy terciles where each band holds ~1-2 stocks.
 
     Used on the Phase 5 allocation table where raw vol values lack retail
@@ -293,6 +294,7 @@ def bucket_vol_outlook(predicted_vols: pd.Series) -> pd.Series:
     rank_pct = predicted_vols.rank(pct=True)
 
     def label(p: float) -> str:
+        """Bucket a percentile rank into 'Low', 'Moderate', or 'Elevated'."""
         if p > 2 / 3:
             return "Elevated ↑"
         if p < 1 / 3:

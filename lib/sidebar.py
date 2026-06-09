@@ -35,7 +35,7 @@ def render_sidebar(current_page) -> None:
             unsafe_allow_html=True,
         )
 
-        # Home — discreet link back to the landing page from anywhere in the flow
+        # Home, discreet link back to the landing page from anywhere in the flow
         if st.button(
             "Home",
             key="nav_home",
@@ -64,7 +64,7 @@ def render_sidebar(current_page) -> None:
 
         # Footer disclaimer (sidebar copy; per-page disclaimer rendered separately)
         st.markdown(
-            "<div class='ra-footer-sidebar'>Simulated allocations — not financial advice</div>",
+            "<div class='ra-footer-sidebar'>Simulated allocations, not financial advice</div>",
             unsafe_allow_html=True,
         )
 
@@ -73,9 +73,18 @@ _VALID_PARTICIPANT_IDS = ["Test"] + [f"P{i:02d}" for i in range(1, 11)]  # Test 
 
 
 def _render_session_card() -> None:
+    """Render the Session card in the sidebar.
+
+    Shows the participant selector, hydrates session state from a saved
+    portfolio if one exists for the selected participant, and displays a
+    summary card with the current risk profile, investment amount, and
+    number of selected stocks. Participant identity lives in the sidebar
+    rather than on the landing page so the dashboard reads as a product
+    rather than a research instrument.
+    """
     from lib.logger import log_event
 
-    # Participant ID — set by the researcher at the start of each session.
+    # Participant ID, set by the researcher at the start of each session.
     # Lives in the sidebar rather than the participant-facing landing page
     # so the dashboard reads as a product, not a research instrument.
     current_pid = st.session_state.get("participant_id")
@@ -110,7 +119,7 @@ def _render_session_card() -> None:
             }
             st.session_state["user_modified_weights"] = None
             st.session_state["decision"] = saved.get("decision")
-            # Each participant load is a fresh view — clear any prior
+            # Each participant load is a fresh view, clear any prior
             # session's confirmation state so the Confirm button reappears.
             st.session_state["portfolio_confirmed"] = False
             log_event(
@@ -124,14 +133,14 @@ def _render_session_card() -> None:
             )
             st.rerun()
 
-    rp = st.session_state.get("risk_profile") or "—"
+    rp = st.session_state.get("risk_profile") or "–"
     amt = st.session_state.get("investment_amount")
-    amt_str = f"£{amt:,.0f}" if amt else "—"
+    amt_str = f"£{amt:,.0f}" if amt else "–"
     n_sel = len(st.session_state.get("selected_tickers") or [])
 
     # Colour the selection count amber when outside the 5-15 range
     if n_sel == 0:
-        sel_str = "—"
+        sel_str = "–"
     elif 5 <= n_sel <= 15:
         sel_str = f"{n_sel}"
     else:
@@ -149,7 +158,7 @@ def _render_session_card() -> None:
 def render_page_footer() -> None:
     """Render the per-page footer disclaimer. Call at the bottom of every page."""
     st.markdown(
-        "<div class='ra-footer-page'>Simulated allocations — not financial advice</div>",
+        "<div class='ra-footer-page'>Simulated allocations, not financial advice</div>",
         unsafe_allow_html=True,
     )
 
@@ -161,11 +170,11 @@ def _render_data_section() -> None:
     try:
         prices_date = load_prices_clean().index.max().date().isoformat()
     except Exception:
-        prices_date = "—"
+        prices_date = "–"
     try:
-        rec_date = load_snapshot_metadata().get("snapshot_date", "—")
+        rec_date = load_snapshot_metadata().get("snapshot_date", "–")
     except Exception:
-        rec_date = "—"
+        rec_date = "–"
 
     with st.container(border=True):
         st.markdown(

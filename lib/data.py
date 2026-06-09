@@ -3,7 +3,7 @@
 All loaders are @st.cache_data decorated so each Streamlit rerun reads
 from in-memory cache rather than disk. Cache lives for the session.
 
-The dashboard never loads RF models or calls SHAP — both are pre-computed
+The dashboard never loads RF models or calls SHAP, both are pre-computed
 into the snapshot files by src/models/snapshot.py upstream.
 """
 

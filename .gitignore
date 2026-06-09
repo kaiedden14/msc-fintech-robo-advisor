@@ -1,30 +1,89 @@
-# Secrets
+# =====================================================================
+# Hybrid Robo-Advisor: .gitignore
+# Standard Python project, with extra rules for data, models, participant
+# study artefacts, and local-only documentation.
+# =====================================================================
+
+# ---------- Secrets ----------
+# Defensive patterns. Never commit anything matching these.
+.env
+.env.*
+*.pem
+*.key
+*token*.md
+*secret*
+*credentials*
 github_token.md
 
-# Data cache and model artefacts (large binary files, not for version control)
-data/raw/
-data/processed/
-/models/
-
-# Python
+# ---------- Python bytecode and packaging ----------
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg
 *.egg-info/
-.env
+.eggs/
+wheels/
+pip-log.txt
+pip-delete-this-directory.txt
+.installed.cfg
+MANIFEST
 
-# Jupyter
+# ---------- Virtual environments ----------
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ---------- Test, coverage, type-check, lint caches ----------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+nosetests.xml
+.cache
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# ---------- Jupyter ----------
 .ipynb_checkpoints/
+.jupyter/
 
-# macOS
-.DS_Store
-
-# Local editor and tooling
+# ---------- IDE and local tooling ----------
+.vscode/
+.idea/
 .claude/
 
-# Participant data — privacy-sensitive, kept local only
+# ---------- Operating system ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Trained model artefacts ----------
+# Joblib files are large binaries. The training notebooks in notebooks/
+# document how to regenerate them.
+/models/
+
+# ---------- Data cache ----------
+# Raw and processed market data is pulled from yfinance on first run and
+# is not redistributable under Yahoo's terms of service. Keep local only.
+data/raw/
+data/processed/
+
+# ---------- Participant study artefacts ----------
+# JSONL session event logs and saved per-participant portfolios contain
+# behavioural data from the user study. Privacy-sensitive, kept local.
+# Test.json is an explicit demo fixture and is allowed through.
 data/logs/
 data/portfolios/*
 !data/portfolios/Test.json
 
-# Local documentation drafts (methodology, portfolio submissions)
+# ---------- Local documentation drafts ----------
+# Methodology and portfolio submission drafts remain local-only.
 docs/

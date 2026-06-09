@@ -1,3 +1,26 @@
+"""Forward projection of a portfolio's cumulative value.
+
+This module powers the Monte Carlo cone the dashboard renders on the
+Forward Projection page. It is intentionally simple: 1,000 Gaussian
+paths over a four-quarter horizon, drawn from ``N(period_return,
+period_vol^2)``, accumulated by ``V_{t+1} = V_t * (1 + r_t)`` from a
+starting value of 1.0 and then scaled by the user's investment amount.
+
+A fixed seed keeps the visual identical across reruns for the same
+inputs, which matters for participant comparability in the user study.
+
+The Gaussian assumption is a deliberate trade-off. It is wrong in the
+classic way (Cont, 2001 documents excess kurtosis and asymmetric
+skewness in equity returns); real markets produce more extreme moves
+than the cone suggests. The dashboard surfaces this caveat explicitly in
+the page caption rather than burying it in a methodology appendix.
+
+A helper ``benchmark_params_from_history()`` derives the per-quarter
+mean and annualised volatility for the FTSE 100 from its trailing
+quarterly returns over a default 10-year window, so the projection page
+can show a benchmark line alongside the portfolio cone.
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -19,12 +42,12 @@ def project_forward(
     (1 + r_t) each quarter.
 
     The Gaussian assumption understates tail risk for equity portfolios
-    (Cont, 2001 — fat tails). This is acknowledged in the methodology.
+    (Cont, 2001, fat tails). This is acknowledged in the methodology.
 
     Parameters
     ----------
     period_return : float
-        Expected per-period (quarterly) portfolio return — e.g.
+        Expected per-period (quarterly) portfolio return, e.g.
         optimise_portfolio's expected_return, which under v6 is on a
         quarterly scale.
     annual_vol : float
@@ -46,9 +69,9 @@ def project_forward(
         percentile_bands  : pd.DataFrame
                             Index = quarter (0..horizon_periods),
                             columns = ['p5','p25','p50','p75','p95']
-        terminal          : dict — p5/p25/p50/p75/p95 of cumulative value
+        terminal          : dict, p5/p25/p50/p75/p95 of cumulative value
                             at the final quarter
-        params            : dict — echo of period_return, period_vol used
+        params            : dict, echo of period_return, period_vol used
     """
     rng = np.random.default_rng(seed)
     period_vol = annual_vol / np.sqrt(4)
@@ -91,7 +114,7 @@ def benchmark_params_from_history(
         Daily close prices indexed by date (e.g. clean_close['^FTSE']).
     lookback_years : int
         Trailing window for parameter estimation. Default 10 years
-        (40 quarterly observations) — wider window than the monthly v5
+        (40 quarterly observations), wider window than the monthly v5
         setup to keep the quarterly sample large enough to be stable.
 
     Returns

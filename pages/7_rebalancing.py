@@ -55,10 +55,12 @@ umw = st.session_state["user_modified_weights"]
 
 if decision == "modify" and umw is not None:
     final_weights = dict(umw)
-    weights_source = "your modified allocation"
+    weights_source = "modified"        # short token for logs and state
+    weights_source_label = "your modified allocation"  # human-readable for the UI
 else:
     final_weights = dict(ai_weights)
-    weights_source = "the AI recommendation"
+    weights_source = "ai"
+    weights_source_label = "the AI recommendation"
 
 amount = st.session_state["investment_amount"] or 10_000.0
 risk_band = st.session_state["risk_profile"]
@@ -135,7 +137,7 @@ with summary_col:
             f"- **Investment amount:** £{amount:,.0f}\n"
             f"- **Stocks selected:** {len(selected)}\n"
             f"- **Stocks held:** {len(held)}\n"
-            f"- **Decision:** {weights_source}"
+            f"- **Decision:** {weights_source_label}"
             + (
                 f" (total adjustment: {total_pp_deviation:.1f}pp)"
                 if decision == "modify"
@@ -268,7 +270,7 @@ with st.container(border=True):
     st.caption(
         "Re-runs the AI on your current selection with whatever data is "
         "loaded. To pull the latest prices first, click **Refresh data** "
-        "in the sidebar — then re-check below."
+        "in the sidebar, then re-check below."
     )
 
     check_col, _ = st.columns([1, 3])
@@ -342,7 +344,7 @@ with st.container(border=True):
         if max_abs_delta_pp < 0.5:
             st.success(
                 "**No material changes.** The AI's recommendation hasn't shifted "
-                "meaningfully since your session — your current allocation still "
+                "meaningfully since your session, your current allocation still "
                 "matches the latest view."
             )
         else:
@@ -377,7 +379,7 @@ with st.container(border=True):
                     st.session_state["expected_return"] = fresh_rec["expected_return"]
                     st.session_state["expected_vol"] = fresh_rec["expected_vol"]
                     st.session_state["fresh_recommendation"] = None
-                    # Persist the new allocation with today's date — adopting
+                    # Persist the new allocation with today's date, adopting
                     # is a fresh investment, so the performance clock resets.
                     if pid:
                         save_portfolio(
@@ -427,7 +429,7 @@ st.markdown("&nbsp;")
 confirmed = st.session_state.get("portfolio_confirmed", False)
 
 if confirmed:
-    st.success("Portfolio confirmed — your session has been saved.")
+    st.success("Portfolio confirmed, your session has been saved.")
 else:
     st.caption("If you are happy with the portfolio, click **Confirm portfolio**.")
 
@@ -450,7 +452,7 @@ with start_over_col:
 
 with confirm_col:
     if confirmed:
-        # Disabled badge — clearly shows the action has been completed.
+        # Disabled badge, clearly shows the action has been completed.
         st.button(
             "✓ Portfolio confirmed",
             key="rb_confirm_done",
@@ -479,7 +481,7 @@ with confirm_col:
                 final_weights=final_weights,
             )
             st.session_state["portfolio_confirmed"] = True
-            st.toast("Portfolio confirmed — session saved.", icon="✓")
+            st.toast("Portfolio confirmed, session saved.", icon="✓")
             st.rerun()
 
 

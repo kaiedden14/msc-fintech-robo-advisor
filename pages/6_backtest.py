@@ -29,7 +29,7 @@ if not st.session_state.get("decision"):
 
 if st.session_state.get("optimised_weights") is None or st.session_state.get("cov_matrix") is None:
     st.title("Forward Projection")
-    st.warning("Portfolio data is missing — please rebuild your recommendation.")
+    st.warning("Portfolio data is missing, please rebuild your recommendation.")
     if st.button("Back to Optimised Portfolio"):
         st.switch_page("pages/5_optimised_portfolio.py")
     render_page_footer()
@@ -68,7 +68,7 @@ final_vol = float(np.sqrt(final_var))
 # the SLSQP objective. For the projection's expected return we use the raw
 # RF predictions to give participants an honest forward view of what the
 # model thinks. The risk side (cov_matrix) is already RF-vol on diagonal +
-# Ledoit-Wolf correlation off-diagonal — directly usable.
+# Ledoit-Wolf correlation off-diagonal, directly usable.
 
 
 # ---------- FTSE 100 benchmark parameters ----------
@@ -115,16 +115,26 @@ st.session_state["projection_results"] = {
     "weights_source": weights_source,
 }
 
-log_event(
-    "projection_viewed",
-    weights_source=weights_source,
-    investment_amount=float(amount),
-    portfolio_median_terminal=float(p50[-1]),
-    portfolio_p5_terminal=float(p5[-1]),
-    portfolio_p95_terminal=float(p95[-1]),
-    ftse_median_terminal=float(f50[-1]),
-    delta_vs_ftse=float(p50[-1] - f50[-1]),
+# Fire projection_viewed only when the projection content actually changes,
+# not on every Streamlit rerun. Fingerprint the inputs that drive the view
+# and compare with the last-logged fingerprint stored in session state.
+_projection_fingerprint = (
+    weights_source,
+    tuple(sorted(final_weights.items())),
+    float(amount),
 )
+if st.session_state.get("_projection_viewed_fingerprint") != _projection_fingerprint:
+    log_event(
+        "projection_viewed",
+        weights_source=weights_source,
+        investment_amount=float(amount),
+        portfolio_median_terminal=float(p50[-1]),
+        portfolio_p5_terminal=float(p5[-1]),
+        portfolio_p95_terminal=float(p95[-1]),
+        ftse_median_terminal=float(f50[-1]),
+        delta_vs_ftse=float(p50[-1] - f50[-1]),
+    )
+    st.session_state["_projection_viewed_fingerprint"] = _projection_fingerprint
 
 
 # ---------- Header ----------
@@ -140,7 +150,7 @@ st.caption(
 
 fig = go.Figure()
 
-# Subtle horizontal reference at the starting capital — anchors the eye
+# Subtle horizontal reference at the starting capital, anchors the eye
 # so the user can read "above the line = gain, below = loss".
 fig.add_hline(
     y=amount,
@@ -148,21 +158,21 @@ fig.add_hline(
     opacity=0.5,
 )
 
-# Portfolio downside (5th percentile) — amber, the "what could go wrong" line
+# Portfolio downside (5th percentile), amber, the "what could go wrong" line
 fig.add_trace(go.Scatter(
     x=quarters, y=p5, mode="lines",
     line=dict(color="#C97A1F", width=2, dash="dot"),
     name="Portfolio downside (5th %ile)",
     hovertemplate="Quarter %{x}<br>Downside: £%{y:,.0f}<extra></extra>",
 ))
-# Portfolio upside (95th percentile) — teal, the "what could go right" line
+# Portfolio upside (95th percentile), teal, the "what could go right" line
 fig.add_trace(go.Scatter(
     x=quarters, y=p95, mode="lines",
     line=dict(color="#0E8E8E", width=2, dash="dot"),
     name="Portfolio upside (95th %ile)",
     hovertemplate="Quarter %{x}<br>Upside: £%{y:,.0f}<extra></extra>",
 ))
-# Portfolio median — navy, prominent, with start + end markers for visual anchor
+# Portfolio median, navy, prominent, with start + end markers for visual anchor
 fig.add_trace(go.Scatter(
     x=quarters, y=p50, mode="lines+markers",
     line=dict(color="#0F2540", width=3.2),
@@ -174,7 +184,7 @@ fig.add_trace(go.Scatter(
     name="Portfolio median",
     hovertemplate="Quarter %{x}<br>Median: £%{y:,.0f}<extra></extra>",
 ))
-# FTSE 100 median — grey, comparison benchmark
+# FTSE 100 median, grey, comparison benchmark
 fig.add_trace(go.Scatter(
     x=quarters, y=f50, mode="lines",
     line=dict(color="#5A5A5A", width=2, dash="dash"),
@@ -182,7 +192,7 @@ fig.add_trace(go.Scatter(
     hovertemplate="Quarter %{x}<br>FTSE: £%{y:,.0f}<extra></extra>",
 ))
 
-# End-of-line value annotations at month 12 — the interpretive moments.
+# End-of-line value annotations at month 12, the interpretive moments.
 # Each line's terminal value labelled in its line's colour. The starting
 # capital reference label sits alongside (in grey, slightly smaller) where
 # the lines have spread out by month 12.

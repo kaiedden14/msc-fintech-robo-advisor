@@ -27,7 +27,7 @@ MODERATE_BAND = "Balanced"
 def effective_cap(n: int) -> float:
     """Headroom-aware per-asset weight cap.
 
-    Returns max(0.10, 1.5/n) — guarantees ~50% solver headroom at every
+    Returns max(0.10, 1.5/n), guarantees ~50% solver headroom at every
     selection size so risk bands stay differentiated across n in [5, 15].
     See memory/dashboard_decisions.md for the geometric derivation.
     """

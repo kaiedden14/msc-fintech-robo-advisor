@@ -1,4 +1,4 @@
-"""Hybrid Robo-Advisor — Streamlit entry point.
+"""Hybrid Robo-Advisor, Streamlit entry point.
 
 Loads theme + session state, then defines the navigation and delegates
 page rendering to the selected st.Page. The auto-generated nav widget is
@@ -24,7 +24,7 @@ init_state()
 
 # Log session_start exactly once per session (the boolean flag in state
 # survives reruns but is reset on a browser reload, which is when a new
-# session_id is also minted — so the pairing stays consistent).
+# session_id is also minted, so the pairing stays consistent).
 if not st.session_state["session_start_logged"]:
     log_event("session_start")
     st.session_state["session_start_logged"] = True

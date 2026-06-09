@@ -28,7 +28,7 @@ def compute_realised_performance(
         Close prices wide-format. Must contain every ticker in `weights`
         plus the benchmark column.
     start_date : pd.Timestamp
-        Inclusive lower bound — typically the snapshot_date that the
+        Inclusive lower bound, typically the snapshot_date that the
         optimiser ran on.
     benchmark_col : str
         Column name of the benchmark price series.
@@ -36,17 +36,17 @@ def compute_realised_performance(
     Returns
     -------
     dict with keys:
-        start_date            : pd.Timestamp — actual first trading day used
-        end_date              : pd.Timestamp — latest available trading day
-        n_days                : int          — trading days in the window
-        portfolio_value_path  : pd.Series    — £1 invested, indexed by date
-        benchmark_value_path  : pd.Series    — £1 invested in FTSE, same dates
-        portfolio_return      : float        — terminal cumulative return
-        benchmark_return      : float        — terminal cumulative return
-        portfolio_ann_vol     : float        — realised annualised vol
-        benchmark_ann_vol     : float        — realised annualised vol
-        max_drawdown          : float        — worst peak-to-trough on the portfolio
-        per_stock             : pd.DataFrame — ticker × [weight, stock_return,
+        start_date            : pd.Timestamp, actual first trading day used
+        end_date              : pd.Timestamp, latest available trading day
+        n_days                : int         , trading days in the window
+        portfolio_value_path  : pd.Series   , £1 invested, indexed by date
+        benchmark_value_path  : pd.Series   , £1 invested in FTSE, same dates
+        portfolio_return      : float       , terminal cumulative return
+        benchmark_return      : float       , terminal cumulative return
+        portfolio_ann_vol     : float       , realised annualised vol
+        benchmark_ann_vol     : float       , realised annualised vol
+        max_drawdown          : float       , worst peak-to-trough on the portfolio
+        per_stock             : pd.DataFrame, ticker × [weight, stock_return,
                                                 contribution]
     """
     tickers = list(weights.keys())

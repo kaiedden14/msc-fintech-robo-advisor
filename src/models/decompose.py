@@ -1,3 +1,35 @@
+"""Analytical decomposition of each optimised portfolio weight.
+
+The optimiser is a quadratic programme, not a model, so SHAP does not
+apply to the weights it produces. This module instead runs five
+counterfactual versions of the optimiser and reads the contributions of
+each input from the differences between them.
+
+Given the full optimiser run, four counterfactuals are computed by
+neutralising one input at a time:
+
+1. Return signal      : set ``alpha = 1`` so all stocks share the same
+                        expected return.
+2. Individual vol     : replace predicted vols with their cross-sectional
+                        mean.
+3. Diversification    : replace the correlation matrix with the identity.
+4. Risk preference    : replace the user's lambda with the Balanced band's
+                        baseline lambda.
+
+A fifth run applies all four neutralisations simultaneously, producing
+the all-neutralised anchor.
+
+For every ticker, each contribution is the difference between the full
+weight and the corresponding counterfactual. The interaction term, the
+gap between the total deviation from the anchor and the sum of the four
+contributions, is reported explicitly rather than forced to zero so
+nothing is hidden.
+
+This decomposition layer is what the dashboard surfaces under "Why this
+weight". It complements the SHAP cards (which explain the per-stock
+predictions) by explaining the per-stock allocations.
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -21,9 +53,9 @@ def decompose_weights(
     which correctly absorbs cap effects.
 
     Contributions (each = w_full - w_counterfactual):
-      return:      return signal's effect — shrinkage_alpha=1 neutralises it
-      variance:    individual vol signal — replace predicted vols with mean vol
-      covariance:  off-diagonal structure — replace correlation with identity
+      return:      return signal's effect, shrinkage_alpha=1 neutralises it
+      variance:    individual vol signal, replace predicted vols with mean vol
+      covariance:  off-diagonal structure, replace correlation with identity
       risk:        user's risk aversion vs moderate baseline
 
     Interaction = (w_full - w_eq) - sum(four contributions).
@@ -38,7 +70,7 @@ def decompose_weights(
     historical_returns : pd.DataFrame
         Daily returns for correlation estimation.
     full_result : dict
-        Output of optimise_portfolio — w_full lifted from here to avoid
+        Output of optimise_portfolio, w_full lifted from here to avoid
         recomputing the sixth run.
     risk_aversion : float
         The lambda used in the full run.

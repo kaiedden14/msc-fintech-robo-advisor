@@ -1,3 +1,35 @@
+"""Data ingestion for the FTSE 100 hybrid robo-advisor.
+
+This module is responsible for getting raw market data into the project
+and turning it into clean, model-ready inputs. The pipeline runs in three
+stages.
+
+1. ``build_universe()`` scrapes the current FTSE 100 constituent list from
+   Wikipedia and appends the ``.L`` suffix that ``yfinance`` requires for
+   London Stock Exchange tickers.
+2. ``download_prices()`` pulls historical daily prices and volumes via
+   ``yfinance``, using ``auto_adjust=True`` so the ``Close`` column already
+   accounts for splits and dividends.
+3. ``clean_prices()`` applies the quality filters: tickers with less than
+   five years of history or more than 20 percent missing rows are dropped,
+   isolated NaNs are forward-filled (no backward-fill so future prices are
+   never propagated into the past), and a quality report is emitted.
+
+Two convenience entry points sit on top:
+
+- ``refresh_prices()`` performs an incremental update against the cached
+  raw parquet, so the dashboard's "Refresh data" button only pulls the
+  trading days the cache is missing.
+- ``refresh_features()`` reads the cleaned prices, calls the feature
+  engineer, and writes ``features.parquet`` keeping rows where all input
+  features are valid (NaN forward targets at the right edge of the
+  panel are intentionally retained for prediction-time use).
+
+The module does not import scikit-learn or shap; that keeps Streamlit
+cold-start cost low when the dashboard imports loaders that only need
+ingestion paths.
+"""
+
 import pandas as pd
 import yfinance as yf
 from pathlib import Path
@@ -59,7 +91,7 @@ def build_universe_metadata(cache_path: Path) -> pd.DataFrame:
     tables = pd.read_html(StringIO(response.text))
     ftse_table = tables[6]  # same index used by build_universe()
 
-    # Identify columns defensively — Wikipedia column names drift over time
+    # Identify columns defensively, Wikipedia column names drift over time
     rename = {}
     for col in ftse_table.columns:
         c = str(col).lower()
@@ -193,10 +225,10 @@ def refresh_prices(
     Returns
     -------
     dict with keys:
-        previous_max_date : datetime.date — newest row before refresh
-        new_max_date      : datetime.date — newest row after refresh
-        new_rows          : int           — number of trading days appended
-        no_new_data       : bool          — True if yfinance returned nothing new
+        previous_max_date : datetime.date, newest row before refresh
+        new_max_date      : datetime.date, newest row after refresh
+        new_rows          : int          , number of trading days appended
+        no_new_data       : bool         , True if yfinance returned nothing new
     """
     if not raw_path.exists():
         raise FileNotFoundError(
@@ -267,9 +299,9 @@ def refresh_features(
     Returns
     -------
     dict with keys:
-        max_date  : datetime.date — newest feature row after rebuild
-        n_rows    : int           — total feature rows after dropna
-        n_tickers : int           — unique tickers in the rebuilt panel
+        max_date  : datetime.date, newest feature row after rebuild
+        n_rows    : int          , total feature rows after dropna
+        n_tickers : int          , unique tickers in the rebuilt panel
     """
     # Local import to avoid pulling sklearn / scipy into ingest's import graph
     from src.features.engineer import build_features

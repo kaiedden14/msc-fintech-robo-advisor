@@ -1,9 +1,9 @@
-"""Asset Selection — Phase 3.
+"""Asset Selection, Phase 3.
 
 Click-to-view interactive table. Click any row to load that stock's
 chart, predictions, and SHAP explanation into the detail panel below.
 Selection (add to / remove from your portfolio) happens via a button
-in the detail panel — keeps the table itself clean (no checkbox column,
+in the detail panel, keeps the table itself clean (no checkbox column,
 no separate dropdown). Enforces 5–15 selection constraint via the
 Continue-button gating.
 """
@@ -44,7 +44,7 @@ st.title("Asset Selection")
 st.caption(
     f"Pick {_MIN_SEL}-{_MAX_SEL} stocks from the FTSE 100. "
     "Click a row to see a stock's chart, predictions, and the reasons "
-    "behind them — then add it to your selection from the detail panel."
+    "behind them, then add it to your selection from the detail panel."
 )
 
 
@@ -80,7 +80,7 @@ table = pd.DataFrame(
             for t in universe_tickers
         ],
         "Sector":    [
-            universe.loc[t, "sector"] if t in universe.index else "—"
+            universe.loc[t, "sector"] if t in universe.index else "–"
             for t in universe_tickers
         ],
         "Last close":  last_close.values,
@@ -102,7 +102,7 @@ with filt_col_a:
     )
 with filt_col_b:
     sectors_available = sorted(
-        s for s in table["Sector"].dropna().unique() if s and s != "—"
+        s for s in table["Sector"].dropna().unique() if s and s != "–"
     )
     sector_filter = st.multiselect(
         "Filter by sector",
@@ -119,14 +119,14 @@ with counter_col:
     elif n < _MIN_SEL:
         st.markdown(
             f"<span style='color:#C97A1F'>"
-            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL} — pick {_MIN_SEL - n} more"
+            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL}, pick {_MIN_SEL - n} more"
             f"</span>",
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
             f"<span style='color:#C97A1F'>"
-            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL} — remove {n - _MAX_SEL}"
+            f"<b>{n}</b> of {_MIN_SEL}-{_MAX_SEL}, remove {n - _MAX_SEL}"
             f"</span>",
             unsafe_allow_html=True,
         )
@@ -181,7 +181,7 @@ if event.selection.rows:
 # ---------- Detail panel (row-clicked stock) ----------
 
 def _toggle_selection(ticker: str, currently_selected: bool) -> None:
-    """Button on_click handler — add to or remove from selected_tickers."""
+    """Button on_click handler, add to or remove from selected_tickers."""
     selected = set(st.session_state["selected_tickers"])
     if currently_selected:
         new_full = sorted(selected - {ticker})
@@ -203,7 +203,7 @@ def _toggle_selection(ticker: str, currently_selected: bool) -> None:
 
 def _render_detail_panel(ticker: str) -> None:
     company = universe.loc[ticker, "name"] if ticker in universe.index else ticker
-    sector = universe.loc[ticker, "sector"] if ticker in universe.index else "—"
+    sector = universe.loc[ticker, "sector"] if ticker in universe.index else "–"
     is_selected = ticker in set(st.session_state["selected_tickers"])
     n_current = len(st.session_state["selected_tickers"])
 
@@ -254,7 +254,7 @@ def _render_detail_panel(ticker: str) -> None:
         with m4:
             st.metric("Predicted vol (annual)", f"{sigma*100:.2f}%")
 
-        # Price chart — full history with rangeselector
+        # Price chart, full history with rangeselector
         series = prices_close[ticker].dropna()
         if len(series) > 0:
             fig = go.Figure()
@@ -312,7 +312,7 @@ def _render_detail_panel(ticker: str) -> None:
             for r in reasons["in_favour"]:
                 st.markdown(
                     f"- **{r['label']}** ({r['value_desc']}) "
-                    f"— pushing the predicted return **up** by "
+                    f", pushing the predicted return **up** by "
                     f"**{r['contribution_pp']:.2f}pp**"
                 )
         if reasons["against"]:
@@ -320,7 +320,7 @@ def _render_detail_panel(ticker: str) -> None:
             for r in reasons["against"]:
                 st.markdown(
                     f"- **{r['label']}** ({r['value_desc']}) "
-                    f"— pulling the predicted return **down** by "
+                    f", pulling the predicted return **down** by "
                     f"**{r['contribution_pp']:.2f}pp**"
                 )
 

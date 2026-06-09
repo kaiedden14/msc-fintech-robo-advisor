@@ -20,7 +20,7 @@ _LOG_DIR = Path("data/logs/sessions")
 def _log_path() -> Path:
     """Return the JSONL file for this session."""
     started = st.session_state["session_started_at"]
-    # Colons are illegal on Windows / awkward on macOS — replace
+    # Colons are illegal on Windows / awkward on macOS, replace
     started_safe = started.replace(":", "-")
     sid_short = st.session_state["session_id"][:8]
     return _LOG_DIR / f"session_{started_safe}_{sid_short}.jsonl"

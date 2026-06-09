@@ -1,3 +1,38 @@
+"""Feature engineering for the hybrid robo-advisor.
+
+This module turns cleaned daily prices and volumes into the input matrix
+the two Random Forest models consume, and computes the forward-looking
+targets they are trained against.
+
+The retained feature set has seven inputs, chosen after a pre-committed
+Spearman correlation audit that dropped any candidate feature with a
+median absolute rank correlation above 0.70 against another candidate.
+Each function in this module computes one feature in wide format
+(date x ticker). The final assembler ``build_features()`` stacks them
+into long format with a (date, ticker) MultiIndex and joins on the
+benchmark VIX series for cross-sectional regime context.
+
+The seven retained features:
+
+- ``momentum``           : 12-month minus 1-month return (Jegadeesh and Titman, 1993)
+- ``volatility_21d``     : 21-day realised volatility, annualised
+- ``drawdown_52w``       : distance from the trailing 52-week high (always non-positive)
+- ``relative_strength``  : 21-day stock return minus FTSE 100 return
+- ``volume_ratio_20``    : today's volume divided by its 20-day average
+- ``beta_252``           : rolling 252-day beta to the FTSE 100
+- ``vix``                : daily VIX level (broadcast across tickers)
+
+The two forward targets:
+
+- ``forward_return``     : 63-trading-day-ahead simple return (one quarter)
+- ``forward_volatility`` : 63-day forward realised volatility, annualised
+
+The 63-day horizon was chosen after a quarterly retarget that produced a
+four-fold improvement in held-out Spearman rank correlation for the
+return model relative to the original 21-day setting. See the
+methodology document for the audit detail.
+"""
+
 import pandas as pd
 import numpy as np
 
@@ -51,7 +86,7 @@ def compute_beta(close: pd.DataFrame, benchmark: pd.Series,
 
 
 def compute_vix(vix_series: pd.Series) -> pd.Series:
-    """Return VIX level — broadcast to all tickers in build_features()."""
+    """Return VIX level, broadcast to all tickers in build_features()."""
     return vix_series
 
 

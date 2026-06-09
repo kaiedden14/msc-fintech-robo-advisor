@@ -1,8 +1,8 @@
-"""Diversification Check — Phase 4.
+"""Diversification Check, Phase 4.
 
 Pairwise correlation heatmap over the user's selected tickers, plus a
 side card listing pairs with |ρ| > 0.6. Informational and non-blocking
-— Continue is enabled regardless of flag count.
+, Continue is enabled regardless of flag count.
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from lib.sidebar import render_page_footer
 
 
 _THRESHOLD = 0.6
-_LOOKBACK = 252  # trading days — matches the optimiser's Ledoit-Wolf window
+_LOOKBACK = 252  # trading days, matches the optimiser's Ledoit-Wolf window
 
 
 # ---------- Guards ----------
@@ -45,7 +45,7 @@ st.title("Diversification Check")
 st.caption(
     "How correlated are your chosen stocks with each other? "
     "Highly-correlated pairs (|ρ| above 0.6) tend to move together in market shocks "
-    "— diversification benefits are weaker between them."
+    ", diversification benefits are weaker between them."
 )
 
 
@@ -56,7 +56,7 @@ returns = prices_close[selected].tail(_LOOKBACK).pct_change(fill_method=None).dr
 
 corr = returns.corr(method="pearson").reindex(index=selected, columns=selected)
 
-# Build flagged-pairs list (upper triangle only — pairs not double-counted)
+# Build flagged-pairs list (upper triangle only, pairs not double-counted)
 flagged: list[tuple[str, str, float]] = []
 for i, t_a in enumerate(selected):
     for t_b in selected[i + 1:]:
@@ -140,7 +140,7 @@ with list_col:
             st.caption(
                 "Pairs of stocks whose returns are highly correlated. Holding "
                 "both gives smaller diversification benefit than holding either "
-                "alone — they tend to move together when the market shifts."
+                "alone, they tend to move together when the market shifts."
             )
             for t_a, t_b, rho in flagged:
                 st.markdown(
@@ -164,7 +164,7 @@ with st.container(border=True):
         "**What this means.** Two stocks with a correlation close to +1 "
         "rise and fall almost in lockstep. A diversified portfolio benefits "
         "from holding assets that don't all move the same way at the same time. "
-        "Flagged pairs aren't a problem on their own — they just reduce the "
+        "Flagged pairs aren't a problem on their own, they just reduce the "
         "marginal diversification benefit of holding both. "
         "The optimiser already accounts for this in the recommended weights."
     )

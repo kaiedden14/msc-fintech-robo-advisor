@@ -1,3 +1,35 @@
+"""Mean-variance portfolio optimisation.
+
+This module solves the constrained quadratic programme that turns the
+per-stock predictions into a recommended set of portfolio weights. The
+objective minimised by SLSQP is
+
+    (lambda / 2) * w' Sigma w  -  w' mu_shrunk
+
+subject to ``sum(w) == 1`` and ``0 <= w_i <= cap`` for every ticker.
+
+The two methodological choices that make this a "hybrid" rather than a
+textbook mean-variance run:
+
+- ``Sigma = D Cov D``, where ``D`` is a diagonal matrix of RF-predicted
+  forward volatilities and ``Cov`` is a Ledoit-Wolf shrunk correlation
+  matrix estimated from 252 days of historical daily returns. The
+  volatility model is the empirical backbone of the optimiser; using
+  historical vols on the diagonal would discard that signal. Held-out
+  Spearman rank correlation for the vol model is 0.46.
+
+- ``mu_shrunk = (1 - alpha) * mu_rf + alpha * mu_bar``, with the
+  shrinkage intensity ``alpha`` set by the user's risk band. The return
+  model has a modest but positive rank-ordering signal (held-out Spearman
+  0.09); shrinkage pulls each stock's expected return toward the
+  cross-sectional mean of the user's selection so the optimiser does not
+  over-react to a small signal.
+
+A defensive nearest-positive-semi-definite projection absorbs floating
+point drift, and an equal-weight fallback is returned on non-convergence
+so the dashboard never shows the user a broken recommendation.
+"""
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
@@ -37,7 +69,7 @@ def build_covariance_matrix(
         nearest-PSD projection applied as defensive backstop.
     corr : np.ndarray
         Ledoit-Wolf regularised correlation matrix (n, n), after diagonal
-        correction. Returned as estimated — not re-derived from cov_matrix.
+        correction. Returned as estimated, not re-derived from cov_matrix.
     tickers : list[str]
         Ticker order matching rows/columns of both matrices.
     """
@@ -61,12 +93,12 @@ def build_covariance_matrix(
         raise ValueError(
             f"build_covariance_matrix: all {len(predicted_vols)} input tickers were "
             f"dropped due to NaN values in the {lookback}-day return window. "
-            "Pass cleaned prices — see src.data.ingest.load_or_build_clean_prices."
+            "Pass cleaned prices, see src.data.ingest.load_or_build_clean_prices."
         )
 
     sigma = predicted_vols.reindex(tickers).values  # shape (n,)
 
-    # Step 1: correlation matrix — use override if provided, else Ledoit-Wolf
+    # Step 1: correlation matrix, use override if provided, else Ledoit-Wolf
     if override_corr is not None:
         corr = override_corr
     else:
@@ -122,13 +154,13 @@ def optimise_portfolio(
     historical_returns : pd.DataFrame
         Daily returns for correlation estimation. Columns: tickers.
     risk_aversion : float
-        Lambda — penalty on portfolio variance. Higher = more conservative.
+        Lambda, penalty on portfolio variance. Higher = more conservative.
     shrinkage_alpha : float
         Return shrinkage intensity in [0, 1].
         0 = raw RF predictions (maximum signal exploitation, maximum noise).
         1 = all assets get equal return = cross-sectional mean (pure
             minimum-variance; return model contributes nothing).
-        Default 0.75 — heavy shrinkage given near-zero return model skill.
+        Default 0.75, heavy shrinkage given near-zero return model skill.
     max_weight : float
         Maximum weight per asset. Guards against estimation-error concentration.
     lookback : int
@@ -137,16 +169,16 @@ def optimise_portfolio(
     Returns
     -------
     dict with keys:
-        weights            : pd.Series — final portfolio weights (indexed by ticker)
-        expected_return    : float — w'μ_shrunk
-        expected_vol       : float — sqrt(w'Σw)
-        mu                 : pd.Series — shrunk return vector (for decomposition)
-        sigma_diag         : pd.Series — RF predicted vols (for decomposition)
-        cov_matrix         : np.ndarray — full covariance matrix (for decomposition)
-        correlation_matrix : pd.DataFrame — Ledoit-Wolf correlation matrix,
+        weights            : pd.Series, final portfolio weights (indexed by ticker)
+        expected_return    : float, w'μ_shrunk
+        expected_vol       : float, sqrt(w'Σw)
+        mu                 : pd.Series, shrunk return vector (for decomposition)
+        sigma_diag         : pd.Series, RF predicted vols (for decomposition)
+        cov_matrix         : np.ndarray, full covariance matrix (for decomposition)
+        correlation_matrix : pd.DataFrame, Ledoit-Wolf correlation matrix,
                              indexed and columned by ticker (for decomposition)
-        converged          : bool — False triggers fallback to equal weights
-        message            : str — solver message or fallback reason
+        converged          : bool, False triggers fallback to equal weights
+        message            : str, solver message or fallback reason
     """
     # Align tickers across both prediction series
     tickers = predicted_returns.index.intersection(
@@ -159,7 +191,7 @@ def optimise_portfolio(
         raise ValueError(
             "No common tickers between return and volatility predictions.")
 
-    # Build covariance matrix — may reorder tickers to match return window
+    # Build covariance matrix, may reorder tickers to match return window
     cov_matrix, corr, tickers = build_covariance_matrix(
         sigma, historical_returns, lookback, override_corr=override_corr)
     mu_rf = mu_rf.reindex(tickers)
@@ -172,14 +204,16 @@ def optimise_portfolio(
 
     # SLSQP setup
     def objective(w):
+        """Mean-variance objective: (lambda/2) * w' Sigma w - w' mu_shrunk."""
         port_var = w @ cov_matrix @ w
         port_return = w @ mu_shrunk.values
         return (risk_aversion / 2) * port_var - port_return
 
     def objective_grad(w):
+        """Analytical gradient of the objective wrt w."""
         return risk_aversion * cov_matrix @ w - mu_shrunk.values
 
-    w0 = np.ones(n) / n  # equal weights — always feasible
+    w0 = np.ones(n) / n  # equal weights, always feasible
     # Dynamic cap: ensures feasibility when n < 1/max_weight
     effective_max = max(max_weight, 1.0 / n)
     bounds = [(0.0, effective_max)] * n
@@ -200,7 +234,7 @@ def optimise_portfolio(
         converged = True
         message = result.message
     else:
-        # Fallback to equal weights — logged via returned message
+        # Fallback to equal weights, logged via returned message
         weights = pd.Series(w0, index=tickers)
         converged = False
         message = f"SLSQP failed: {result.message}. Falling back to equal weights."

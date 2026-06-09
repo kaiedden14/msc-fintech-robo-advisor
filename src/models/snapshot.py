@@ -1,3 +1,29 @@
+"""Frozen recommendation snapshot for the dashboard.
+
+The Streamlit dashboard needs to feel responsive: SHAP values for the
+whole investable universe take a few seconds to compute, which is too
+slow to do live on every page load. This module pre-computes the
+per-ticker predictions and SHAP attributions for a single cross-section
+date and writes them to parquet so the dashboard can read them off disk.
+
+``build_snapshot()`` is called by the sidebar's "Refresh data" action and
+by the data ingest pipeline after a model retrain. It writes four files
+to the output directory:
+
+- ``snapshot_predictions.parquet``: per-ticker ``predicted_return`` and
+  ``predicted_vol`` for the chosen snapshot date.
+- ``snapshot_shap_return.parquet``: per-ticker SHAP attributions for the
+  return model, with the underlying feature values included for the
+  plain-language reasons cards.
+- ``snapshot_shap_volatility.parquet``: same structure for the volatility
+  model.
+- ``snapshot_metadata.json``: snapshot date, model paths, feature list,
+  ticker count, build time.
+
+The snapshot date defaults to the latest date in ``features.parquet`` so
+the dashboard always shows the most recent view the model can produce.
+"""
+
 import json
 from datetime import datetime
 from pathlib import Path

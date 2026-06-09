@@ -1,4 +1,4 @@
-"""Optimised Portfolio — Phase 5a.
+"""Optimised Portfolio, Phase 5a.
 
 Triggers compute_recommendation() on entry (or after selection / risk-band
 change) and renders a diagnostic readout of the optimiser output. The
@@ -64,7 +64,7 @@ st.caption(
 cached_before_call = st.session_state["optimised_weights"] is not None
 try:
     if cached_before_call:
-        # Fast path — no spinner, no work
+        # Fast path, no spinner, no work
         compute_recommendation()
     else:
         with st.spinner("Building your recommended portfolio…"):
@@ -120,7 +120,7 @@ weights = st.session_state["optimised_weights"]
 weight_series = pd.Series(weights, name="weight")
 held = weight_series[weight_series > 0.001].sort_values(ascending=False)
 
-# Build the allocation table — Return as raw %, Risk as bucket label
+# Build the allocation table, Return as raw %, Risk as bucket label
 vol_outlook_all = bucket_vol_outlook(predictions_universe["predicted_vol"])
 table = pd.DataFrame(
     {
@@ -148,7 +148,7 @@ def _on_reset_to_ai_click() -> None:
     (matches the slider grid the user is actually editing on).
 
     Must run as an on_click callback (NOT inline after the button) because
-    callbacks fire before the next rerun's widgets render — at inline time,
+    callbacks fire before the next rerun's widgets render, at inline time,
     every weight_slider_<ticker> widget has already been instantiated and
     Streamlit forbids modifying its session_state key.
     """
@@ -171,7 +171,7 @@ def _on_remove_zero_weight_click(ticker: str) -> None:
     stock the optimiser allocated 0% to.
 
     Runs as an on_click callback so it fires before the next rerun's widgets
-    are instantiated — letting us safely delete stale weight_slider_<ticker>
+    are instantiated, letting us safely delete stale weight_slider_<ticker>
     keys for the removed name.
     """
     current = list(st.session_state["selected_tickers"])
@@ -210,7 +210,7 @@ def _on_weight_slider_change(ticker: str) -> None:
     ai = st.session_state["optimised_weights"]
     cap = effective_cap(len(current))
     # Use the rounded baseline (same grid the sliders sit on) so the renorm
-    # bounds align with the slider bounds — otherwise the renorm could
+    # bounds align with the slider bounds, otherwise the renorm could
     # spill weight beyond a slider's visible range.
     ai_baseline = round_weights_to_integer_pp(ai, max_weight=cap)
 
@@ -251,7 +251,7 @@ def _render_modify_section() -> None:
     """
     with st.expander("Modify your allocation (optional)", expanded=False):
         cap = effective_cap(len(st.session_state["optimised_weights"]))
-        # Baseline used for slider bounds + the "has modifications" comparison —
+        # Baseline used for slider bounds + the "has modifications" comparison,
         # AI weights rounded to nearest 1pp so the slider grid is integer-clean.
         ai_baseline = round_weights_to_integer_pp(
             st.session_state["optimised_weights"], max_weight=cap,
@@ -292,7 +292,7 @@ def _render_modify_section() -> None:
 
             delta_pp = round((user_weights[ticker] - ai_baseline[ticker]) * 100)
             if delta_pp == 0:
-                delta_str = "—"
+                delta_str = "–"
                 delta_colour = "#5A5A5A"
             else:
                 delta_str = f"{delta_pp:+d}pp"
@@ -379,7 +379,7 @@ def _render_modify_section() -> None:
             st.markdown("**Excluded by the recommendation**")
             st.caption(
                 "These stocks received a 0% allocation. Remove any you no "
-                "longer want considered — the recommendation will re-run on "
+                "longer want considered, the recommendation will re-run on "
                 "the remaining stocks. Minimum selection size is 5."
             )
             min_selection = 5
@@ -402,7 +402,7 @@ def _render_modify_section() -> None:
                     )
             if removal_disabled:
                 st.caption(
-                    f"Can't remove — minimum {min_selection} stocks required. "
+                    f"Can't remove, minimum {min_selection} stocks required. "
                     f"Go back to Asset Selection to swap stocks."
                 )
 
@@ -520,7 +520,7 @@ with left:
 def _render_bar_card(items: list[dict]) -> None:
     """Render the bar-card list (label + value + magnitude bar per item).
 
-    Pure HTML/CSS rendering — Streamlit doesn't have a native widget for
+    Pure HTML/CSS rendering, Streamlit doesn't have a native widget for
     this design. Colour: teal for positive, amber for negative. Bar widths
     are proportional to |value| / max(|value|) across the items.
     """
@@ -601,7 +601,7 @@ with right:
                     st.markdown(shap_summary_sentence(shap_r_row, active, kind="return"))
                 else:
                     st.caption(
-                        f"The model has no strong return signal for **{active}** — "
+                        f"The model has no strong return signal for **{active}**, "
                         f"its forecast sits close to the model's typical value."
                     )
             else:
@@ -618,7 +618,7 @@ with right:
                     st.markdown(shap_summary_sentence(shap_v_row, active, kind="risk"))
                 else:
                     st.caption(
-                        f"The model has no strong risk signal for **{active}** — "
+                        f"The model has no strong risk signal for **{active}**, "
                         f"its forecast sits close to the model's typical value."
                     )
             else:
@@ -674,7 +674,7 @@ with action_right:
         umw = st.session_state["user_modified_weights"]
         ai = st.session_state["optimised_weights"]
         # Compare against the rounded baseline (which is the slider grid's
-        # zero-point), not the raw float AI weights — otherwise sub-pp
+        # zero-point), not the raw float AI weights, otherwise sub-pp
         # rounding noise from the slider initialisation falsely registers
         # as a user modification.
         cap = effective_cap(len(ai))

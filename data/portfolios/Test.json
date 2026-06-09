@@ -1,0 +1,24 @@
+{
+  "participant_id": "Test",
+  "investment_date": "2026-02-26",
+  "weights": {
+    "BP.L": 0.25,
+    "DGE.L": 0.22,
+    "BA.L": 0.16,
+    "BARC.L": 0.14,
+    "BLND.L": 0.11,
+    "AZN.L": 0.12
+  },
+  "selected_tickers": [
+    "BP.L",
+    "DGE.L",
+    "BA.L",
+    "BARC.L",
+    "BLND.L",
+    "AZN.L"
+  ],
+  "investment_amount": 1000.0,
+  "risk_band": "Adventurous",
+  "decision": "accept",
+  "saved_at": "2026-06-08T11:11:02"
+}

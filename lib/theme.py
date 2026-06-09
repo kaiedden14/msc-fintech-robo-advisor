@@ -1,6 +1,6 @@
 """Inject the dashboard's CSS tokens that .streamlit/config.toml can't cover.
 
-Only used for layout tokens — card radius, divider grey, secondary text
+Only used for layout tokens, card radius, divider grey, secondary text
 colour, sidebar styling. No widget logic or content lives here.
 """
 

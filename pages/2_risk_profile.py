@@ -1,4 +1,4 @@
-"""Risk Profile page — Phase 2.
+"""Risk Profile page, Phase 2.
 
 4-band segmented control + per-band explanation + investment amount.
 State writes: risk_profile (with downstream clear), investment_amount.
@@ -31,7 +31,7 @@ _BAND_EXPLANATIONS: dict[str, str] = {
     ),
     "Adventurous": (
         "Leans furthest into the model's return predictions. Highest "
-        "expected return, highest expected volatility — suitable if you "
+        "expected return, highest expected volatility, suitable if you "
         "want the recommendation to reflect the model's directional view."
     ),
 }

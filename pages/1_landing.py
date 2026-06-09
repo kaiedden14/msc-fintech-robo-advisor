@@ -49,7 +49,7 @@ st.markdown(
 st.markdown(
     "<div style='font-size:1.15rem; color:#5A5A5A; max-width:720px; "
     "margin:0.75rem 0 2rem 0; line-height:1.55;'>"
-    "Smarter portfolios for UK retail investors — built around your choices, "
+    "Smarter portfolios for UK retail investors, built around your choices, "
     "explained at every step, with you in control."
     "</div>",
     unsafe_allow_html=True,
@@ -110,7 +110,7 @@ _VALUE_PROPS = [
      "its weight in your portfolio."),
     ("Built on your shortlist",
      "The algorithm respects your selection. It recommends how to weight the "
-     "stocks you've chosen — not which ones to hold."),
+     "stocks you've chosen, not which ones to hold."),
     ("Adjustable within limits",
      "Fine-tune individual weights without breaking the optimiser's overall "
      "structure. Control without chaos."),

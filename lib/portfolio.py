@@ -1,4 +1,4 @@
-"""Portfolio computation — optimiser + decomposition + state writes.
+"""Portfolio computation, optimiser + decomposition + state writes.
 
 Single entry point `compute_recommendation()` called by Screen 5 on entry.
 Idempotent: skips work when `optimised_weights` and `decomposition` are
@@ -6,7 +6,7 @@ already set in state. `clear_downstream_of("selected_tickers" or
 "risk_profile")` upstream invalidates the cache by resetting state keys
 to None so the next call recomputes.
 
-Also exports `single_anchor_renorm()` — the locked redistribution rule
+Also exports `single_anchor_renorm()`, the locked redistribution rule
 for user weight modifications (Phase 5d Modify expander).
 """
 
@@ -73,7 +73,7 @@ def round_weights_to_integer_pp(
                 rounded_pp[t] += 1
                 needed -= 1
     elif needed < 0:
-        # Over-floored (rare; floats > integer multiples) — round down the
+        # Over-floored (rare; floats > integer multiples), round down the
         # tickers with the smallest fractional remainders.
         for t in sorted(remainders, key=lambda t: remainders[t]):
             if needed == 0:
@@ -95,7 +95,7 @@ def single_anchor_renorm(
     """Single-anchor renormalisation per memory/dashboard_decisions.md.
 
     When the user moves the slider for ``changed_ticker`` to ``new_value``,
-    redistribute the delta across other tickers — largest first, spill to
+    redistribute the delta across other tickers, largest first, spill to
     next-largest if the current target hits its bound. Each other ticker
     has its own [ai - 5pp, ai + 5pp] range, clamped by [0, effective_cap].
 
@@ -128,7 +128,7 @@ def single_anchor_renorm(
     others = [t for t in weights if t != changed_ticker]
 
     if delta > 0:
-        # User raised this ticker — reduce others by the surplus
+        # User raised this ticker, reduce others by the surplus
         remaining = delta
         # Largest other weight first (has the most room to give back to AI baseline)
         others.sort(key=lambda t: -result[t])
@@ -144,7 +144,7 @@ def single_anchor_renorm(
         if remaining > _FAIL_THRESHOLD:
             return None
     else:
-        # User lowered this ticker — give the freed weight to others
+        # User lowered this ticker, give the freed weight to others
         remaining = abs(delta)
         # Largest other weight first (smaller available headroom to upper bound,
         # so the redistribution naturally concentrates on holdings that aren't
@@ -178,7 +178,7 @@ def compute_recommendation() -> dict[str, Any] | None:
         The raw optimiser result dict on a fresh compute (so the caller can
         inspect it for diagnostics). None on cache hit.
     """
-    # Cache hit — both expensive outputs already populated
+    # Cache hit, both expensive outputs already populated
     if (
         st.session_state["optimised_weights"] is not None
         and st.session_state["decomposition"] is not None
@@ -225,7 +225,7 @@ def compute_recommendation() -> dict[str, Any] | None:
         max_weight=cap,
     )
 
-    # Persist atomically — every key written, none half-set
+    # Persist atomically, every key written, none half-set
     st.session_state["predictions"] = pd.DataFrame(
         {"predicted_return": mu, "predicted_vol": sigma}
     )

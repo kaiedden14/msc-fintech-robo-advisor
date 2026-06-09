@@ -2,7 +2,7 @@
 
 Saves each participant's accepted portfolio to a JSON file under
 data/portfolios/<participant_id>.json so the rebalancing page can compute
-realised performance from the actual investment date forward — and so a
+realised performance from the actual investment date forward, and so a
 participant returning on a later day sees their portfolio with one more
 day of accumulated performance each time.
 """
@@ -18,6 +18,7 @@ _PORTFOLIOS_DIR = Path("data/portfolios")
 
 
 def _portfolio_path(participant_id: str) -> Path:
+    """Return the on-disk JSON path for a participant's saved portfolio."""
     return _PORTFOLIOS_DIR / f"{participant_id}.json"
 
 

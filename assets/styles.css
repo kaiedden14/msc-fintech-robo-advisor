@@ -1,4 +1,4 @@
-/* Hybrid Robo-Advisor — Phase 1 styles.
+/* Hybrid Robo-Advisor, Phase 1 styles.
    Covers what .streamlit/config.toml cannot: card radii, secondary text,
    divider tone, sidebar brand/footer treatment, section labels. Polish
    (transitions, animations, pixel-perfect spacing) is deferred to Phase 8.
@@ -48,7 +48,7 @@
     font-weight: 600;
 }
 
-/* Sidebar buttons — equal weight nav rows */
+/* Sidebar buttons, equal weight nav rows */
 [data-testid="stSidebar"] .stButton button {
     text-align: left;
     justify-content: flex-start;
@@ -72,7 +72,7 @@
     text-align: center;
 }
 
-/* Per-page footer — placed at the bottom of main content */
+/* Per-page footer, placed at the bottom of main content */
 .ra-footer-page {
     margin-top: 3rem;
     padding-top: 0.75rem;

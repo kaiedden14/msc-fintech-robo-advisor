@@ -1,6 +1,6 @@
 """Session-state schema and idempotent initialiser.
 
-Mirrors the schema approved in Phase 0. AppState is documentation-only —
+Mirrors the schema approved in Phase 0. AppState is documentation-only,
 st.session_state is dynamic, but the TypedDict serves as the canonical
 reference for every key name, type, and default.
 """
@@ -71,9 +71,9 @@ DEFAULTS: dict[str, Any] = {
     "consent_acknowledged":   True,
     "session_start_logged":   False,
     "participant_id":         None,
-    # Rebalancing — fresh recommendation produced by the re-check action
+    # Rebalancing, fresh recommendation produced by the re-check action
     "fresh_recommendation":   None,  # dict with 'weights', 'expected_return', 'expected_vol'
-    # Rebalancing — explicit "Confirm portfolio" click marks the session as
+    # Rebalancing, explicit "Confirm portfolio" click marks the session as
     # complete. Logs a session_end event and disables the confirm control.
     "portfolio_confirmed":    False,
 }
@@ -138,7 +138,7 @@ def clear_downstream_of(key: str) -> None:
             st.session_state[downstream_key] = {}
 
 
-# Keys preserved across a "Reject and Restart" — the participant identity
+# Keys preserved across a "Reject and Restart", the participant identity
 # and consent acknowledgement stay so the participant doesn't have to
 # re-consent. Everything portfolio-related is wiped.
 _RESTART_PRESERVE: set[str] = {
