@@ -481,7 +481,7 @@ with confirm_col:
                 final_weights=final_weights,
             )
             st.session_state["portfolio_confirmed"] = True
-            st.toast("Portfolio confirmed, session saved.", icon="✓")
+            st.toast("Portfolio confirmed, session saved.")
             st.rerun()
 
 

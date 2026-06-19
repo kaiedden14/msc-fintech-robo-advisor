@@ -127,10 +127,7 @@ def _render_session_card() -> None:
                 participant_id=selected_pid,
                 investment_date=saved.get("investment_date"),
             )
-            st.toast(
-                f"Loaded {selected_pid}'s saved portfolio.",
-                icon="✅",
-            )
+            st.toast(f"Loaded {selected_pid}'s saved portfolio.")
             st.rerun()
 
     rp = st.session_state.get("risk_profile") or "–"
