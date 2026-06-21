@@ -689,7 +689,11 @@ with action_right:
             ) * 100.0
         else:
             choice = "accept"
-            final = dict(ai)
+            # Persist the rounded baseline (integer percentage points), which
+            # is the version the participant saw on the modify slider grid.
+            # Saving raw float weights would produce odd decimal segments on
+            # the rebalance pie chart and per-stock table.
+            final = dict(ai_rounded)
             total_pp_deviation = 0.0
 
         st.session_state["decision"] = choice
